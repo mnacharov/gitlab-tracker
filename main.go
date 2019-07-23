@@ -42,8 +42,7 @@ var (
 			TLSHandshakeTimeout: 5 * time.Second,
 		},
 	}
-	createFlag = flag.Bool("create", true, "Create tag if he doesn't exists.")
-	forceFlag  = flag.Bool("force", true, "Force recreate tags.")
+	forceFlag = flag.Bool("force", true, "Force recreate tags.")
 )
 
 type Tracker struct {
@@ -72,7 +71,7 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	err = tracker.UpdateTags(*forceFlag, *createFlag)
+	err = tracker.UpdateTags(*forceFlag)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -88,16 +87,14 @@ func ValidateEnvironment() []error {
 	return errs
 }
 
-func (t *Tracker) UpdateTags(force, create bool) error {
+func (t *Tracker) UpdateTags(force bool) error {
 	var failed bool
 	for _, rule := range t.rules {
-		if create {
-			err := t.CreateTagIfNotExists(rule.Tag)
-			if err != nil {
-				failed = true
-				t.logger.Error(err)
-				continue
-			}
+		tag, err := t.CreateTagIfNotExists(rule.Tag)
+		if err != nil {
+			failed = true
+			t.logger.Error(err)
+			continue
 		}
 		changes, err := t.Diff(os.Getenv("CI_COMMIT_SHA"), rule.Tag)
 		if err != nil {
@@ -109,7 +106,7 @@ func (t *Tracker) UpdateTags(force, create bool) error {
 		if !match {
 			continue
 		}
-		err = t.UpdateTag(rule.Tag, force, matches)
+		err = t.UpdateTag(tag, force, matches)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
@@ -121,55 +118,61 @@ func (t *Tracker) UpdateTags(force, create bool) error {
 	return nil
 }
 
-func (t *Tracker) CreateTagIfNotExists(tagName string) error {
-	_, _, err := t.gitLab.Tags.GetTag(os.Getenv("CI_PROJECT_PATH"), tagName, nil)
+func (t *Tracker) CreateTagIfNotExists(tagName string) (*gitlab.Tag, error) {
+	tag, _, err := t.gitLab.Tags.GetTag(os.Getenv("CI_PROJECT_PATH"), tagName, nil)
 	if err != nil && !strings.Contains(err.Error(), "Tag Not Found") {
-		return err
+		return nil, err
 	}
 	if err == nil {
-		return nil
+		return tag, nil
 	}
 	t.logger.Infof("Create '%s' tag.", tagName)
-	err = t.CreateTagForRef(tagName, os.Getenv("CI_COMMIT_SHA"))
-	return err
+	tag, err = t.CreateTagForRef(tagName, os.Getenv("CI_COMMIT_SHA"))
+	if err != nil {
+		return nil, err
+	}
+	return tag, nil
 }
 
-func (t Tracker) CreateTagForRef(tagName, ref string) error {
+func (t Tracker) CreateTagForRef(tagName, ref string) (*gitlab.Tag, error) {
 	t.logger.Infof("Create '%s' tag with %s ref.", tagName, ref)
 	opts := &gitlab.CreateTagOptions{
 		TagName: gitlab.String(tagName),
 		Ref:     gitlab.String(ref),
 		Message: gitlab.String(tagMessage),
 	}
-	_, _, err := t.gitLab.Tags.CreateTag(
+	tag, _, err := t.gitLab.Tags.CreateTag(
 		os.Getenv("CI_PROJECT_PATH"),
 		opts,
 		nil,
 	)
-	return err
+	return tag, err
 }
 
-func (t *Tracker) UpdateTag(tagName string, force bool, changes []string) error {
+func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error {
 	if force {
 		_, err := t.gitLab.Tags.DeleteTag(
 			os.Getenv("CI_PROJECT_PATH"),
-			tagName,
+			tag.Name,
 			nil,
 		)
 		if err != nil && !strings.Contains(err.Error(), "Tag Not Found") {
 			return err
 		}
 	}
-	err := t.CreateTagForRef(tagName, os.Getenv("CI_COMMIT_SHA"))
+	_, err := t.CreateTagForRef(tag.Name, os.Getenv("CI_COMMIT_SHA"))
 	if err != nil {
 		return err
 	}
-	message := fmt.Sprintf("<details><summary>Details</summary><pre><code>%s</code></pre></details>", strings.Join(changes, "\n"))
+	message := fmt.Sprintf(
+		"<details><summary>Details</summary><pre><code>%s</code></pre></details>",
+		strings.Join(changes, "\n"),
+	)
 	opts := &gitlab.CreateReleaseNoteOptions{
 		Description: gitlab.String(message),
 	}
 	// It's okay if it fail
-	t.gitLab.Tags.CreateReleaseNote(os.Getenv("CI_PROJECT_PATH"), tagName, opts, nil)
+	t.gitLab.Tags.CreateReleaseNote(os.Getenv("CI_PROJECT_PATH"), tag.Name, opts, nil)
 	return nil
 }
 
