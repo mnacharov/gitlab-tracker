@@ -22,17 +22,12 @@ import (
 )
 
 const (
-	tagMessage = "Auto-generated. Do not Remove."
+	tagMessage     = "Auto-generated. Do not Remove."
+	errTagNotFound = "Tag Not Found"
+	configFilename = ".argo-tracker.yml"
 )
 
 var (
-	requiredVariables = []string{
-		"CI_COMMIT_SHA",
-		"CI_API_V4_URL",
-		"GITLAB_TOKEN",
-		"CI_COMMIT_SHORT_SHA",
-		"CI_PROJECT_PATH",
-	}
 	httpCli = &http.Client{
 		Timeout: time.Second * 10,
 		Transport: &http.Transport{
@@ -46,11 +41,15 @@ var (
 )
 
 type Tracker struct {
-	dir    string
-	git    string
-	gitLab *gitlab.Client
-	logger *logrus.Entry
-	rules  []*Rule
+	dir         string
+	git         string
+	gitLabToken string
+	gitLabURL   string
+	ref         string
+	proj        string
+	gitLab      *gitlab.Client
+	logger      *logrus.Entry
+	rules       []*Rule
 }
 
 type Rule struct {
@@ -60,13 +59,6 @@ type Rule struct {
 
 func main() {
 	flag.Parse()
-	errs := ValidateEnvironment()
-	if len(errs) > 0 {
-		for _, err := range errs {
-			logrus.Error(err)
-		}
-		logrus.Fatal("Validation failed")
-	}
 	tracker, err := NewTracker()
 	if err != nil {
 		logrus.Fatal(err)
@@ -75,16 +67,6 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-}
-
-func ValidateEnvironment() []error {
-	errs := []error{}
-	for _, env := range requiredVariables {
-		if len(os.Getenv(env)) == 0 {
-			errs = append(errs, fmt.Errorf("Variable %s must be specified", env))
-		}
-	}
-	return errs
 }
 
 func (t *Tracker) UpdateTags(force bool) error {
@@ -96,7 +78,7 @@ func (t *Tracker) UpdateTags(force bool) error {
 			t.logger.Error(err)
 			continue
 		}
-		changes, err := t.Diff(os.Getenv("CI_COMMIT_SHA"), rule.Tag)
+		changes, err := t.Diff(t.ref, rule.Tag)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
@@ -119,15 +101,15 @@ func (t *Tracker) UpdateTags(force bool) error {
 }
 
 func (t *Tracker) CreateTagIfNotExists(tagName string) (*gitlab.Tag, error) {
-	tag, _, err := t.gitLab.Tags.GetTag(os.Getenv("CI_PROJECT_PATH"), tagName, nil)
-	if err != nil && !strings.Contains(err.Error(), "Tag Not Found") {
+	tag, _, err := t.gitLab.Tags.GetTag(t.proj, tagName, nil)
+	if err != nil && !strings.Contains(err.Error(), errTagNotFound) {
 		return nil, err
 	}
 	if err == nil {
 		return tag, nil
 	}
 	t.logger.Infof("Create '%s' tag.", tagName)
-	tag, err = t.CreateTagForRef(tagName, os.Getenv("CI_COMMIT_SHA"))
+	tag, err = t.CreateTagForRef(tagName, t.ref)
 	if err != nil {
 		return nil, err
 	}
@@ -141,30 +123,22 @@ func (t Tracker) CreateTagForRef(tagName, ref string) (*gitlab.Tag, error) {
 		Ref:     gitlab.String(ref),
 		Message: gitlab.String(tagMessage),
 	}
-	tag, _, err := t.gitLab.Tags.CreateTag(
-		os.Getenv("CI_PROJECT_PATH"),
-		opts,
-		nil,
-	)
+	tag, _, err := t.gitLab.Tags.CreateTag(t.proj, opts, nil)
 	return tag, err
 }
 
 func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error {
 	if force {
-		_, err := t.gitLab.Tags.DeleteTag(
-			os.Getenv("CI_PROJECT_PATH"),
-			tag.Name,
-			nil,
-		)
-		if err != nil && !strings.Contains(err.Error(), "Tag Not Found") {
+		_, err := t.gitLab.Tags.DeleteTag(t.proj, tag.Name, nil)
+		if err != nil && !strings.Contains(err.Error(), errTagNotFound) {
 			return err
 		}
 	}
-	stat, err := t.DiffStat(tag.Commit.ID, os.Getenv("CI_COMMIT_SHA"), changes)
+	stat, err := t.DiffStat(tag.Commit.ID, t.ref, changes)
 	if err != nil {
 		return err
 	}
-	_, err = t.CreateTagForRef(tag.Name, os.Getenv("CI_COMMIT_SHA"))
+	_, err = t.CreateTagForRef(tag.Name, t.ref)
 	if err != nil {
 		return err
 	}
@@ -176,7 +150,7 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 		Description: gitlab.String(message),
 	}
 	// It's okay if it fail
-	t.gitLab.Tags.CreateReleaseNote(os.Getenv("CI_PROJECT_PATH"), tag.Name, opts, nil)
+	t.gitLab.Tags.CreateReleaseNote(t.proj, tag.Name, opts, nil)
 	return nil
 }
 
@@ -203,22 +177,50 @@ func NewTracker() (*Tracker, error) {
 	if err != nil {
 		return nil, err
 	}
-	cli := gitlab.NewClient(httpCli, os.Getenv("GITLAB_TOKEN"))
-	err = cli.SetBaseURL(os.Getenv("CI_API_V4_URL"))
-	if err != nil {
-		return nil, err
-	}
 	t := &Tracker{
 		git:    g,
-		gitLab: cli,
 		dir:    d,
 		logger: logrus.WithField("client", "git"),
 	}
-	err = t.LoadRules(path.Join(d, ".argo-tracker.yml"))
+	err = t.LoadRules(path.Join(d, configFilename))
 	if err != nil {
 		return nil, err
 	}
+	err = t.LoadEnvironment()
+	if err != nil {
+		return nil, err
+	}
+	cli := gitlab.NewClient(httpCli, t.gitLabToken)
+	err = cli.SetBaseURL(t.gitLabURL)
+	if err != nil {
+		return nil, err
+	}
+	t.gitLab = cli
 	return t, nil
+}
+
+func (t *Tracker) LoadEnvironment() error {
+	token := os.Getenv("GITLAB_TOKEN")
+	if len(token) == 0 {
+		return errors.New("gitlab token must be specified")
+	}
+	t.gitLabToken = token
+	baseURL := os.Getenv("CI_API_V4_URL")
+	if len(baseURL) == 0 {
+		return errors.New("gitlab api url bust be specified")
+	}
+	t.gitLabURL = baseURL
+	ref := os.Getenv("CI_COMMIT_SHA")
+	if len(ref) == 0 {
+		return errors.New("commit sha must be specified")
+	}
+	t.ref = ref
+	proj := os.Getenv("CI_PROJECT_PATH")
+	if len(proj) == 0 {
+		return errors.New("project must be specified")
+	}
+	t.proj = proj
+	return nil
 }
 
 func (t *Tracker) LoadRules(filename string) error {
