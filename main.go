@@ -105,11 +105,11 @@ func (t *Tracker) UpdateTags(force, create bool) error {
 			t.logger.Error(err)
 			continue
 		}
-		match := rule.IsChangesMatch(changes)
+		matches, match := rule.IsChangesMatch(changes)
 		if !match {
 			continue
 		}
-		err = t.SetTag(rule.Tag, force)
+		err = t.UpdateTag(rule.Tag, force, matches)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
@@ -149,7 +149,7 @@ func (t Tracker) CreateTagForRef(tagName, ref string) error {
 	return err
 }
 
-func (t *Tracker) SetTag(tagName string, force bool) error {
+func (t *Tracker) UpdateTag(tagName string, force bool, changes []string) error {
 	if force {
 		_, err := t.gitLab.Tags.DeleteTag(
 			os.Getenv("CI_PROJECT_PATH"),
@@ -161,17 +161,30 @@ func (t *Tracker) SetTag(tagName string, force bool) error {
 		}
 	}
 	err := t.CreateTagForRef(tagName, os.Getenv("CI_COMMIT_SHA"))
-	return err
+	if err != nil {
+		return err
+	}
+	message := fmt.Sprintf("### Changes\n\n```\n%s\n```", strings.Join(changes, "\n"))
+	opts := &gitlab.CreateReleaseNoteOptions{
+		Description: gitlab.String(message),
+	}
+	// It's okay if it fail
+	t.gitLab.Tags.CreateReleaseNote(os.Getenv("CI_PROJECT_PATH"), tagName, opts, nil)
+	return nil
 }
 
-func (r *Rule) IsChangesMatch(changes []string) bool {
+func (r *Rule) IsChangesMatch(changes []string) ([]string, bool) {
+	matches := []string{}
 	gl := glob.MustCompileGlob(r.Path)
 	for _, change := range changes {
 		if gl.Match(change) {
-			return true
+			matches = append(matches, change)
 		}
 	}
-	return false
+	if len(matches) > 0 {
+		return matches, true
+	}
+	return matches, false
 }
 
 func NewTracker() (*Tracker, error) {
