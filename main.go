@@ -160,13 +160,17 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 			return err
 		}
 	}
-	_, err := t.CreateTagForRef(tag.Name, os.Getenv("CI_COMMIT_SHA"))
+	stat, err := t.DiffStat(tag.Commit.ID, os.Getenv("CI_COMMIT_SHA"), changes)
+	if err != nil {
+		return err
+	}
+	_, err = t.CreateTagForRef(tag.Name, os.Getenv("CI_COMMIT_SHA"))
 	if err != nil {
 		return err
 	}
 	message := fmt.Sprintf(
 		"<details><summary>Details</summary><pre><code>%s</code></pre></details>",
-		strings.Join(changes, "\n"),
+		stat,
 	)
 	opts := &gitlab.CreateReleaseNoteOptions{
 		Description: gitlab.String(message),
@@ -248,4 +252,20 @@ func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
 		changes = append(changes, scan.Text())
 	}
 	return
+}
+
+func (t *Tracker) DiffStat(head, sha string, files []string) (string, error) {
+	t.logger.Infof("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
+	args := []string{
+		"diff",
+		"--stat",
+		head,
+		sha,
+	}
+	args = append(args, files...)
+	output, err := t.gitCommand(args...).CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
 }
