@@ -1,0 +1,3 @@
+---
+- path: prepare-environment.sh
+  label: latest
