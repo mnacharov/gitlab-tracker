@@ -164,7 +164,7 @@ func (t *Tracker) UpdateTag(tagName string, force bool, changes []string) error 
 	if err != nil {
 		return err
 	}
-	message := fmt.Sprintf("### Changes\n\n```\n%s\n```", strings.Join(changes, "\n"))
+	message := fmt.Sprintf("<details><summary>Details</summary><pre><code>%s</code></pre></details>", strings.Join(changes, "\n"))
 	opts := &gitlab.CreateReleaseNoteOptions{
 		Description: gitlab.String(message),
 	}
