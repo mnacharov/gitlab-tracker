@@ -1,4 +1,5 @@
 ---
+rules:
 - path: prepare-environment.sh
   label: latest
 - path: prepare-environment.sh

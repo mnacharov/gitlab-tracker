@@ -52,7 +52,11 @@ type Tracker struct {
 	proj        string
 	gitLab      *gitlab.Client
 	logger      *logrus.Entry
-	rules       []*Rule
+	config      *Config
+}
+
+type Config struct {
+	Rules []*Rule `yaml:"rules"`
 }
 
 type Rule struct {
@@ -122,7 +126,7 @@ func (t *TagSuffuxFileRef) GetSuffix(dir string) (string, error) {
 
 func (t *Tracker) UpdateTags(force bool) error {
 	var failed bool
-	for _, rule := range t.rules {
+	for _, rule := range t.config.Rules {
 		suffix, err := t.GetTagSuffixForRule(rule)
 		if err != nil {
 			failed = true
@@ -293,11 +297,11 @@ func (t *Tracker) LoadRules(filename string) error {
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(b, &t.rules)
+	err = yaml.Unmarshal(b, &t.config)
 	if err != nil {
 		return err
 	}
-	for _, rule := range t.rules {
+	for _, rule := range t.config.Rules {
 		if rule.TagSuffuxFileRef == nil {
 			continue
 		}
