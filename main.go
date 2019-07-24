@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -56,12 +57,18 @@ type Tracker struct {
 }
 
 type Config struct {
-	Rules []*Rule `yaml:"rules"`
+	Hooks *HooksConfig `yaml:"hooks"`
+	Rules []*Rule      `yaml:"rules"`
+}
+
+type HooksConfig struct {
+	PostTagCommand []string `yaml:"postTagCommand"`
 }
 
 type Rule struct {
 	Path             string            `yaml:"path"`
 	Tag              string            `yaml:"tag"`
+	TagWithSuffix    string            `yaml:"-"`
 	TagSuffux        string            `yaml:"tagSuffux"`
 	TagSuffuxFileRef *TagSuffuxFileRef `yaml:"tagSuffuxFileRef"`
 }
@@ -133,20 +140,25 @@ func (t *Tracker) UpdateTags(force bool) error {
 			t.logger.Error(err)
 			continue
 		}
-		tagName := rule.Tag
+		rule.TagWithSuffix = rule.Tag
 		if len(suffix) > 0 {
-			tagName = rule.Tag + suffix
+			rule.TagWithSuffix = rule.Tag + suffix
 		}
-		exists, tag, err := t.CreateTagIfNotExists(tagName)
+		exists, tag, err := t.CreateTagIfNotExists(rule.TagWithSuffix)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
 			continue
 		}
 		if !exists {
+			err = t.PostTagHooks(rule)
+			if err != nil {
+				failed = true
+				t.logger.Error(err)
+			}
 			continue
 		}
-		changes, err := t.Diff(t.ref, tagName)
+		changes, err := t.Diff(t.ref, rule.TagWithSuffix)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
@@ -154,6 +166,7 @@ func (t *Tracker) UpdateTags(force bool) error {
 		}
 		matches, match := rule.IsChangesMatch(changes)
 		if !match {
+			t.logger.Info("Nothing changed.")
 			continue
 		}
 		err = t.UpdateTag(tag, force, matches)
@@ -166,6 +179,52 @@ func (t *Tracker) UpdateTags(force bool) error {
 		return errors.New("Failed")
 	}
 	return nil
+}
+
+func ProcessTagHookCommand(args []string, rule *Rule) (*exec.Cmd, error) {
+	for i, templ := range args {
+		arg, err := gotmpl(templ, rule)
+		if err != nil {
+			return nil, err
+		}
+		args[i] = arg
+	}
+	if len(args) > 1 {
+		c := exec.Command(args[0], args[1:]...)
+		c.Env = os.Environ()
+		return c, nil
+	}
+	c := exec.Command(args[0])
+	c.Env = os.Environ()
+	return c, nil
+}
+
+func (t *Tracker) PostTagHooks(rule *Rule) error {
+	t.logger.Infof("Exec %v as PostTag command.", t.config.Hooks.PostTagCommand)
+	if t.config.Hooks == nil {
+		return nil
+	}
+	if len(t.config.Hooks.PostTagCommand) == 0 {
+		return nil
+	}
+	cmd, err := ProcessTagHookCommand(t.config.Hooks.PostTagCommand, rule)
+	if err != nil {
+		return err
+	}
+	_, err = cmd.CombinedOutput()
+	return err
+}
+
+func gotmpl(templ string, data interface{}) (string, error) {
+	var templateEng *template.Template
+	buf := bytes.NewBufferString("")
+	templateEng = template.New("hook")
+	if messageTempl, err := templateEng.Parse(templ); err != nil {
+		return "", fmt.Errorf("failed to parse template: %v", err)
+	} else if err := messageTempl.Execute(buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute template: %v", err)
+	}
+	return buf.String(), nil
 }
 
 func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error) {

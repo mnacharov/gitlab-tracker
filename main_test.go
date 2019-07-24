@@ -172,3 +172,70 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		t.Error("Must be an error, but got nil")
 	}
 }
+
+func isSimilarStringMaps(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for _, labelA := range a {
+		found := false
+		for _, labelB := range b {
+			if labelA == labelB {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func TestProcessTagHookCommand(t *testing.T) {
+	rule := &Rule{
+		Tag:           "tag",
+		TagWithSuffix: "tag@suffix",
+	}
+	tests := []struct {
+		hookCommand []string
+		cmd         string
+		args        []string
+	}{
+		{
+			hookCommand: []string{"foobar"},
+			cmd:         "foobar",
+			args:        []string{},
+		},
+		{
+			hookCommand: []string{"foo", "bar"},
+			cmd:         "foo",
+			args:        []string{"bar"},
+		},
+		{
+			hookCommand: []string{"foobar", "{{.Tag}}", "{{.TagWithSuffix}}"},
+			cmd:         "foobar",
+			args:        []string{"tag", "tag@suffix"},
+		},
+	}
+	for _, test := range tests {
+		cmd, err := ProcessTagHookCommand(test.hookCommand, rule)
+		if err != nil {
+			t.Error(err)
+		}
+		if cmd.Path != test.cmd {
+			t.Errorf("Must be %s, but got %s", test.cmd, cmd.Path)
+		}
+		if isSimilarStringMaps(cmd.Args, test.args) {
+			t.Errorf("Must be %s, but got %s", test.args, cmd.Args)
+		}
+	}
+	_, err := ProcessTagHookCommand([]string{"{{.TTTT"}, rule)
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	_, err = ProcessTagHookCommand([]string{"{{.TTTT}}"}, rule)
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+}
