@@ -20,5 +20,5 @@ rules:
   tag: application
   tagSuffuxFileRef:
     file: application/production/application.Deployment.yaml
-    regexp: eu.gcr.io/project/.*/application:(.*)$
+    regexp: eu.gcr.io/project/group/application:(.*)$
 ```
