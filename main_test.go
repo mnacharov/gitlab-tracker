@@ -2,6 +2,7 @@ package main
 
 import (
 	"os/exec"
+	"regexp"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -102,6 +103,68 @@ func TestLoadRules(t *testing.T) {
 		t.Error(err)
 	}
 	err = tracker.LoadRules("test_data/invalid.yaml")
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	err = tracker.LoadRules("test_data/invalid_tag.yaml")
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+}
+
+func TestGetSuffix(t *testing.T) {
+	tests := []struct {
+		rule   *Rule
+		suffix string
+	}{
+		{
+			rule: &Rule{
+				TagSuffux: "static",
+			},
+			suffix: "static",
+		},
+		{
+			rule: &Rule{
+				TagSuffuxFileRef: &TagSuffuxFileRef{
+					File:   "test_data/suffix.yaml",
+					RegExp: regexp.MustCompile(`eu.gcr.io/utilities-212509/argo/application:(.*)$`),
+				},
+			},
+			suffix: "master-459fb2b7",
+		},
+		{
+			rule: &Rule{
+				TagSuffuxFileRef: &TagSuffuxFileRef{
+					File:   "test_data/suffix.yaml",
+					RegExp: regexp.MustCompile(`foobar:(.*)$`),
+				},
+			},
+			suffix: "",
+		},
+	}
+	for _, test := range tests {
+		suffix, err := test.rule.GetSuffix()
+		if err != nil {
+			t.Error(err)
+		}
+		if suffix != test.suffix {
+			t.Errorf("Must be %s, but got %s", test.suffix, suffix)
+		}
+	}
+	rule := &Rule{}
+	suffix, err := rule.GetSuffix()
+	if err != nil {
+		t.Error(err)
+	}
+	if suffix != "" {
+		t.Errorf("Must be empty, but got %s", suffix)
+	}
+	rule = &Rule{
+		TagSuffuxFileRef: &TagSuffuxFileRef{
+			File: "test_data/not-found.yaml",
+		},
+	}
+	_, err = rule.GetSuffix()
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}

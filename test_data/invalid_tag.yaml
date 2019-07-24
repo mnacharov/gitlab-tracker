@@ -5,4 +5,4 @@
   label: latest
   tagSuffuxFileRef:
     file: filename
-    regexp: re
+    regexp: ((re

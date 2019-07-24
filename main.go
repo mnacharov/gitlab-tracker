@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -53,8 +54,16 @@ type Tracker struct {
 }
 
 type Rule struct {
-	Path string `yaml:"path"`
-	Tag  string `yaml:"tag"`
+	Path             string            `yaml:"path"`
+	Tag              string            `yaml:"tag"`
+	TagSuffux        string            `yaml:"tagSuffux"`
+	TagSuffuxFileRef *TagSuffuxFileRef `yaml:"tagSuffuxFileRef"`
+}
+
+type TagSuffuxFileRef struct {
+	File      string         `yaml:"file"`
+	RegExpRaw string         `yaml:"regexp"`
+	RegExp    *regexp.Regexp `yaml:"-"`
 }
 
 func main() {
@@ -69,9 +78,48 @@ func main() {
 	}
 }
 
+func (r *Rule) GetSuffix() (string, error) {
+	if len(r.TagSuffux) > 0 {
+		return r.TagSuffux, nil
+	}
+	if r.TagSuffuxFileRef != nil {
+		return r.TagSuffuxFileRef.GetSuffix()
+	}
+	return "", nil
+}
+
+func (t *TagSuffuxFileRef) GetSuffix() (string, error) {
+	output, err := ioutil.ReadFile(t.File)
+	if err != nil {
+		return "", err
+	}
+	scan := bufio.NewScanner(bytes.NewReader(output))
+	scan.Split(bufio.ScanLines)
+	for scan.Scan() {
+		line := strings.TrimSpace(scan.Text())
+		if !t.RegExp.MatchString(line) {
+			continue
+		}
+		results := t.RegExp.FindStringSubmatch(line)
+		if len(results) > 1 {
+			return results[1], nil
+		}
+	}
+	return "", err
+}
+
 func (t *Tracker) UpdateTags(force bool) error {
 	var failed bool
 	for _, rule := range t.rules {
+		suffix, err := rule.GetSuffix()
+		if err != nil {
+			failed = true
+			t.logger.Error(err)
+			continue
+		}
+		if len(suffix) > 0 {
+			rule.Tag = fmt.Sprintf("%s/%s", rule.Tag, suffix)
+		}
 		tag, err := t.CreateTagIfNotExists(rule.Tag)
 		if err != nil {
 			failed = true
@@ -232,6 +280,16 @@ func (t *Tracker) LoadRules(filename string) error {
 	err = yaml.Unmarshal(b, &t.rules)
 	if err != nil {
 		return err
+	}
+	for _, rule := range t.rules {
+		if rule.TagSuffuxFileRef == nil {
+			continue
+		}
+		re, err := regexp.Compile(rule.TagSuffuxFileRef.RegExpRaw)
+		if err != nil {
+			return fmt.Errorf("Failed to parse '%s': %v", rule.TagSuffuxFileRef.RegExpRaw, err)
+		}
+		rule.TagSuffuxFileRef.RegExp = re
 	}
 	return nil
 }
