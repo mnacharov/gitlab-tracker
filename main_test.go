@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"regexp"
 	"testing"
@@ -237,5 +238,29 @@ func TestProcessTagHookCommand(t *testing.T) {
 	_, err = ProcessTagHookCommand([]string{"{{.TTTT}}"}, rule)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
+	}
+}
+
+func TestLoadEnvironment(t *testing.T) {
+	vars := []string{
+		"GITLAB_TOKEN",
+		"CI_API_V4_URL",
+		"CI_COMMIT_SHA",
+		"CI_PROJECT_PATH",
+	}
+	for _, v := range vars {
+		os.Setenv(v, "1")
+	}
+	tracker := &Tracker{}
+	err := tracker.LoadEnvironment()
+	if err != nil {
+		t.Errorf("Must be nil, but got %v", err)
+	}
+	for id := len(vars) - 1; id >= 0; id-- {
+		os.Unsetenv(vars[id])
+		err := tracker.LoadEnvironment()
+		if err == nil {
+			t.Error("Must be an error, but got nil")
+		}
 	}
 }
