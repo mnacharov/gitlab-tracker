@@ -131,45 +131,46 @@ func (t *TagSuffuxFileRef) GetSuffix(dir string) (string, error) {
 	return "", err
 }
 
+func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
+	suffix, err := t.GetTagSuffixForRule(rule)
+	if err != nil {
+		return err
+	}
+	rule.TagWithSuffix = rule.Tag
+	if len(suffix) > 0 {
+		rule.TagWithSuffix = rule.Tag + suffix
+	}
+	exists, tag, err := t.CreateTagIfNotExists(rule.TagWithSuffix)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		err = t.PostTagHooks(rule)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	changes, err := t.Diff(t.ref, rule.TagWithSuffix)
+	if err != nil {
+		return err
+	}
+	matches, match := rule.IsChangesMatch(changes)
+	if !match {
+		t.logger.Info("Nothing changed.")
+		return nil
+	}
+	err = t.UpdateTag(tag, force, matches)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (t *Tracker) UpdateTags(force bool) error {
 	var failed bool
 	for _, rule := range t.config.Rules {
-		suffix, err := t.GetTagSuffixForRule(rule)
-		if err != nil {
-			failed = true
-			t.logger.Error(err)
-			continue
-		}
-		rule.TagWithSuffix = rule.Tag
-		if len(suffix) > 0 {
-			rule.TagWithSuffix = rule.Tag + suffix
-		}
-		exists, tag, err := t.CreateTagIfNotExists(rule.TagWithSuffix)
-		if err != nil {
-			failed = true
-			t.logger.Error(err)
-			continue
-		}
-		if !exists {
-			err = t.PostTagHooks(rule)
-			if err != nil {
-				failed = true
-				t.logger.Error(err)
-			}
-			continue
-		}
-		changes, err := t.Diff(t.ref, rule.TagWithSuffix)
-		if err != nil {
-			failed = true
-			t.logger.Error(err)
-			continue
-		}
-		matches, match := rule.IsChangesMatch(changes)
-		if !match {
-			t.logger.Info("Nothing changed.")
-			continue
-		}
-		err = t.UpdateTag(tag, force, matches)
+		err := t.ProcessRule(rule, force)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
