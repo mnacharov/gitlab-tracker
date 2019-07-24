@@ -23,7 +23,7 @@ spec:
         app: application
     spec:
       containers:
-        image: eu.gcr.io/utilities-212509/argo/application:master-459fb2b7
+        image: eu.gcr.io/org/proj/application:master-459fb2b7
         livenessProbe:
           httpGet:
             path: /liveness

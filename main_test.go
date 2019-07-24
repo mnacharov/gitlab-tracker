@@ -131,7 +131,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 			rule: &Rule{
 				TagSuffuxFileRef: &TagSuffuxFileRef{
 					File:   "test_data/suffix.yaml",
-					RegExp: regexp.MustCompile(`eu.gcr.io/utilities-212509/argo/application:(.*)$`),
+					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/application:(.*)$`),
 				},
 			},
 			suffix: "@master-459fb2b7",
