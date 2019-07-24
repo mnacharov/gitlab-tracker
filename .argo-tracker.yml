@@ -1,0 +1,4 @@
+---
+rules:
+- path: test_data/**
+  tag: latest

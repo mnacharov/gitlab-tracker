@@ -241,16 +241,29 @@ func TestProcessTagHookCommand(t *testing.T) {
 	}
 }
 
-func TestLoadEnvironment(t *testing.T) {
-	vars := []string{
+var (
+	vars = []string{
 		"GITLAB_TOKEN",
 		"CI_API_V4_URL",
 		"CI_COMMIT_SHA",
 		"CI_PROJECT_PATH",
 	}
+)
+
+func fillEnvVars() {
 	for _, v := range vars {
 		os.Setenv(v, "1")
 	}
+}
+
+func cleanupEnvVars() {
+	for _, v := range vars {
+		os.Unsetenv(v)
+	}
+}
+
+func TestLoadEnvironment(t *testing.T) {
+	fillEnvVars()
 	tracker := &Tracker{}
 	err := tracker.LoadEnvironment()
 	if err != nil {
@@ -262,5 +275,55 @@ func TestLoadEnvironment(t *testing.T) {
 		if err == nil {
 			t.Error("Must be an error, but got nil")
 		}
+	}
+}
+
+func TestNewTracker(t *testing.T) {
+	fillEnvVars()
+	_, err := NewTracker()
+	if err != nil {
+		t.Error(err)
+	}
+	cleanupEnvVars()
+}
+
+func TestPostTagHooks(t *testing.T) {
+	tracker := &Tracker{
+		config: &Config{},
+		logger: logrus.WithField("client", "git"),
+	}
+	rule := &Rule{
+		Path: "test_data/**",
+		Tag:  "latest",
+	}
+	err := tracker.PostTagHooks(rule)
+	if err != nil {
+		t.Errorf("Must be nil, but got %v", err)
+	}
+	tracker.config.Hooks = &HooksConfig{}
+	err = tracker.PostTagHooks(rule)
+	if err != nil {
+		t.Errorf("Must be nil, but got %v", err)
+	}
+	tracker.config.Hooks = &HooksConfig{
+		PostTagCommand: []string{},
+	}
+	err = tracker.PostTagHooks(rule)
+	if err != nil {
+		t.Errorf("Must be nil, but got %v", err)
+	}
+	tracker.config.Hooks = &HooksConfig{
+		PostTagCommand: []string{"whoami"},
+	}
+	err = tracker.PostTagHooks(rule)
+	if err != nil {
+		t.Errorf("Must be nil, but got %v", err)
+	}
+	tracker.config.Hooks = &HooksConfig{
+		PostTagCommand: []string{"{{.FOOBAR}}"},
+	}
+	err = tracker.PostTagHooks(rule)
+	if err == nil {
+		t.Error("Must be an error, but got nil")
 	}
 }

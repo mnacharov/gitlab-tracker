@@ -200,13 +200,13 @@ func ProcessTagHookCommand(args []string, rule *Rule) (*exec.Cmd, error) {
 }
 
 func (t *Tracker) PostTagHooks(rule *Rule) error {
-	t.logger.Infof("Exec %v as PostTag command.", t.config.Hooks.PostTagCommand)
 	if t.config.Hooks == nil {
 		return nil
 	}
 	if len(t.config.Hooks.PostTagCommand) == 0 {
 		return nil
 	}
+	t.logger.Infof("Exec %v as PostTag command.", t.config.Hooks.PostTagCommand)
 	cmd, err := ProcessTagHookCommand(t.config.Hooks.PostTagCommand, rule)
 	if err != nil {
 		return err
