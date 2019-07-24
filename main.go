@@ -39,7 +39,8 @@ var (
 			TLSHandshakeTimeout: 5 * time.Second,
 		},
 	}
-	forceFlag = flag.Bool("force", true, "Force recreate tags.")
+	forceFlag         = flag.Bool("force", true, "Force recreate tags.")
+	tagSuffixReplacer = strings.NewReplacer("/", "", ":", "")
 )
 
 type Tracker struct {
@@ -81,7 +82,8 @@ func main() {
 
 func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 	if len(r.TagSuffux) > 0 {
-		return tagSuffixSeparator + r.TagSuffux, nil
+		suffix := tagSuffixReplacer.Replace(r.TagSuffux)
+		return tagSuffixSeparator + suffix, nil
 	}
 	if r.TagSuffuxFileRef != nil {
 		suffix, err := r.TagSuffuxFileRef.GetSuffix(t.dir)
@@ -89,6 +91,7 @@ func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 			return "", err
 		}
 		if len(suffix) > 0 {
+			suffix = tagSuffixReplacer.Replace(suffix)
 			return tagSuffixSeparator + suffix, nil
 		}
 		return "", nil
@@ -130,10 +133,13 @@ func (t *Tracker) UpdateTags(force bool) error {
 		if len(suffix) > 0 {
 			tagName = rule.Tag + suffix
 		}
-		tag, err := t.CreateTagIfNotExists(tagName)
+		exists, tag, err := t.CreateTagIfNotExists(tagName)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
+			continue
+		}
+		if !exists {
 			continue
 		}
 		changes, err := t.Diff(t.ref, tagName)
@@ -158,20 +164,20 @@ func (t *Tracker) UpdateTags(force bool) error {
 	return nil
 }
 
-func (t *Tracker) CreateTagIfNotExists(tagName string) (*gitlab.Tag, error) {
+func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error) {
 	tag, _, err := t.gitLab.Tags.GetTag(t.proj, tagName, nil)
 	if err != nil && !strings.Contains(err.Error(), errTagNotFound) {
-		return nil, err
+		return false, nil, err
 	}
 	if err == nil {
-		return tag, nil
+		return true, tag, nil
 	}
 	t.logger.Infof("Create '%s' tag.", tagName)
 	tag, err = t.CreateTagForRef(tagName, t.ref)
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
-	return tag, nil
+	return false, tag, nil
 }
 
 func (t Tracker) CreateTagForRef(tagName, ref string) (*gitlab.Tag, error) {
