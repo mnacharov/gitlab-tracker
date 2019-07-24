@@ -112,7 +112,10 @@ func TestLoadRules(t *testing.T) {
 	}
 }
 
-func TestGetSuffix(t *testing.T) {
+func TestGetTagSuffixForRule(t *testing.T) {
+	tracker := &Tracker{
+		dir: "./",
+	}
 	tests := []struct {
 		rule   *Rule
 		suffix string
@@ -121,7 +124,7 @@ func TestGetSuffix(t *testing.T) {
 			rule: &Rule{
 				TagSuffux: "static",
 			},
-			suffix: "static",
+			suffix: "@static",
 		},
 		{
 			rule: &Rule{
@@ -130,7 +133,7 @@ func TestGetSuffix(t *testing.T) {
 					RegExp: regexp.MustCompile(`eu.gcr.io/utilities-212509/argo/application:(.*)$`),
 				},
 			},
-			suffix: "master-459fb2b7",
+			suffix: "@master-459fb2b7",
 		},
 		{
 			rule: &Rule{
@@ -143,7 +146,7 @@ func TestGetSuffix(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		suffix, err := test.rule.GetSuffix()
+		suffix, err := tracker.GetTagSuffixForRule(test.rule)
 		if err != nil {
 			t.Error(err)
 		}
@@ -152,7 +155,7 @@ func TestGetSuffix(t *testing.T) {
 		}
 	}
 	rule := &Rule{}
-	suffix, err := rule.GetSuffix()
+	suffix, err := tracker.GetTagSuffixForRule(rule)
 	if err != nil {
 		t.Error(err)
 	}
@@ -164,7 +167,7 @@ func TestGetSuffix(t *testing.T) {
 			File: "test_data/not-found.yaml",
 		},
 	}
-	_, err = rule.GetSuffix()
+	_, err = tracker.GetTagSuffixForRule(rule)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}

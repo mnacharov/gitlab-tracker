@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	tagMessage     = "Auto-generated. Do not Remove."
-	errTagNotFound = "Tag Not Found"
-	configFilename = ".argo-tracker.yml"
+	tagMessage         = "Auto-generated. Do not Remove."
+	errTagNotFound     = "Tag Not Found"
+	configFilename     = ".argo-tracker.yml"
+	tagSuffixSeparator = "@"
 )
 
 var (
@@ -78,18 +79,26 @@ func main() {
 	}
 }
 
-func (r *Rule) GetSuffix() (string, error) {
+func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 	if len(r.TagSuffux) > 0 {
-		return r.TagSuffux, nil
+		return tagSuffixSeparator + r.TagSuffux, nil
 	}
 	if r.TagSuffuxFileRef != nil {
-		return r.TagSuffuxFileRef.GetSuffix()
+		suffix, err := r.TagSuffuxFileRef.GetSuffix(t.dir)
+		if err != nil {
+			return "", err
+		}
+		if len(suffix) > 0 {
+			return tagSuffixSeparator + suffix, nil
+		}
+		return "", nil
 	}
 	return "", nil
 }
 
-func (t *TagSuffuxFileRef) GetSuffix() (string, error) {
-	output, err := ioutil.ReadFile(t.File)
+func (t *TagSuffuxFileRef) GetSuffix(dir string) (string, error) {
+	filename := path.Join(dir, t.File)
+	output, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -111,22 +120,23 @@ func (t *TagSuffuxFileRef) GetSuffix() (string, error) {
 func (t *Tracker) UpdateTags(force bool) error {
 	var failed bool
 	for _, rule := range t.rules {
-		suffix, err := rule.GetSuffix()
+		suffix, err := t.GetTagSuffixForRule(rule)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
 			continue
 		}
+		tagName := rule.Tag
 		if len(suffix) > 0 {
-			rule.Tag = fmt.Sprintf("%s/%s", rule.Tag, suffix)
+			tagName = rule.Tag + suffix
 		}
-		tag, err := t.CreateTagIfNotExists(rule.Tag)
+		tag, err := t.CreateTagIfNotExists(tagName)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
 			continue
 		}
-		changes, err := t.Diff(t.ref, rule.Tag)
+		changes, err := t.Diff(t.ref, tagName)
 		if err != nil {
 			failed = true
 			t.logger.Error(err)
