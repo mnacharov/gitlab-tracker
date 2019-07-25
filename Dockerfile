@@ -5,7 +5,6 @@ RUN go build ./
 
 FROM alpine:3.9
 ENV USER=argocd
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/src/github.com/leominov/argo-tracker/argo-tracker /usr/local/bin/argo-tracker
 RUN apk --no-cache add \
         curl \
