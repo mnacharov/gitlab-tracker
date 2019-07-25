@@ -53,12 +53,12 @@ type Tracker struct {
 	proj        string
 	gitLab      *gitlab.Client
 	logger      *logrus.Entry
-	config      *Config
+	config      Config
 }
 
 type Config struct {
-	Hooks *HooksConfig `yaml:"hooks"`
-	Rules []*Rule      `yaml:"rules"`
+	Hooks HooksConfig `yaml:"hooks"`
+	Rules []*Rule     `yaml:"rules"`
 }
 
 type HooksConfig struct {
@@ -201,9 +201,6 @@ func ProcessTagHookCommand(args []string, rule *Rule) (*exec.Cmd, error) {
 }
 
 func (t *Tracker) PostTagHooks(rule *Rule) error {
-	if t.config.Hooks == nil {
-		return nil
-	}
 	if len(t.config.Hooks.PostTagCommand) == 0 {
 		return nil
 	}
@@ -262,11 +259,11 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 			return err
 		}
 	}
-	stat, err := t.DiffStat(tag.Commit.ID, t.ref, changes)
+	_, err := t.CreateTagForRef(tag.Name, t.ref)
 	if err != nil {
 		return err
 	}
-	_, err = t.CreateTagForRef(tag.Name, t.ref)
+	stat, err := t.DiffStat(tag.Commit.ID, t.ref, changes)
 	if err != nil {
 		return err
 	}

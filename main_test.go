@@ -289,37 +289,27 @@ func TestNewTracker(t *testing.T) {
 
 func TestPostTagHooks(t *testing.T) {
 	tracker := &Tracker{
-		config: &Config{},
 		logger: logrus.WithField("client", "git"),
 	}
 	rule := &Rule{
 		Path: "test_data/**",
 		Tag:  "latest",
 	}
+	tracker.config.Hooks = HooksConfig{
+		PostTagCommand: []string{},
+	}
 	err := tracker.PostTagHooks(rule)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
-	tracker.config.Hooks = &HooksConfig{}
-	err = tracker.PostTagHooks(rule)
-	if err != nil {
-		t.Errorf("Must be nil, but got %v", err)
-	}
-	tracker.config.Hooks = &HooksConfig{
-		PostTagCommand: []string{},
-	}
-	err = tracker.PostTagHooks(rule)
-	if err != nil {
-		t.Errorf("Must be nil, but got %v", err)
-	}
-	tracker.config.Hooks = &HooksConfig{
+	tracker.config.Hooks = HooksConfig{
 		PostTagCommand: []string{"whoami"},
 	}
 	err = tracker.PostTagHooks(rule)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
-	tracker.config.Hooks = &HooksConfig{
+	tracker.config.Hooks = HooksConfig{
 		PostTagCommand: []string{"{{.FOOBAR}}"},
 	}
 	err = tracker.PostTagHooks(rule)
