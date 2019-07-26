@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/cloudfoundry/cli/util/glob"
