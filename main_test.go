@@ -130,7 +130,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		{
 			rule: &Rule{
 				TagSuffuxFileRef: &TagSuffuxFileRef{
-					File:   "test_data/suffix.yaml",
+					File:   "test_data/suffix_tag.yaml",
 					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/application:(.*)$`),
 				},
 			},
@@ -139,11 +139,20 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		{
 			rule: &Rule{
 				TagSuffuxFileRef: &TagSuffuxFileRef{
-					File:   "test_data/suffix.yaml",
+					File:   "test_data/suffix_tag.yaml",
 					RegExp: regexp.MustCompile(`foobar:(.*)$`),
 				},
 			},
 			suffix: "",
+		},
+		{
+			rule: &Rule{
+				TagSuffuxFileRef: &TagSuffuxFileRef{
+					File:   "test_data/suffix_digest.yaml",
+					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/application[:@](.*)$`),
+				},
+			},
+			suffix: "@sha256-391be4b7b42d1374f6578e850e74bc4977a1d35cc3adad1fcf0940f74f0ac379",
 		},
 	}
 	for _, test := range tests {

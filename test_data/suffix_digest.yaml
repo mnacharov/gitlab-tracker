@@ -1,0 +1,51 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: application
+  name: application
+  namespace: pseudo-production
+spec:
+  selector:
+    matchLabels:
+      app: application
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "3000"
+        prometheus.io/scrape: "true"
+      labels:
+        app: application
+    spec:
+      containers:
+        image: eu.gcr.io/org/proj/application@sha256:391be4b7b42d1374f6578e850e74bc4977a1d35cc3adad1fcf0940f74f0ac379
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: http
+          initialDelaySeconds: 15
+        name: app
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: http
+          initialDelaySeconds: 15
+        resources:
+          requests:
+            memory: 32Mi
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+      terminationGracePeriodSeconds: 1

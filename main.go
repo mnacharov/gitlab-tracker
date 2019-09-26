@@ -41,7 +41,7 @@ var (
 		},
 	}
 	forceFlag         = flag.Bool("force", true, "Force recreate tags.")
-	tagSuffixReplacer = strings.NewReplacer("/", "", ":", "")
+	tagSuffixReplacer = strings.NewReplacer("/", "", ":", "-")
 )
 
 type Tracker struct {
