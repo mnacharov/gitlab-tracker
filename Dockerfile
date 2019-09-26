@@ -1,11 +1,11 @@
 FROM golang:1.12.6-alpine as builder
-WORKDIR /go/src/github.com/leominov/argo-tracker
+WORKDIR /go/src/github.com/leominov/gitlab-tracker
 COPY . .
 RUN go build ./
 
 FROM alpine:3.9
 ENV USER=argocd
-COPY --from=builder /go/src/github.com/leominov/argo-tracker/argo-tracker /usr/local/bin/argo-tracker
+COPY --from=builder /go/src/github.com/leominov/gitlab-tracker/gitlab-tracker /usr/local/bin/gitlab-tracker
 RUN apk --no-cache add \
         curl \
         git \

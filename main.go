@@ -26,7 +26,7 @@ import (
 const (
 	tagMessage         = "Auto-generated. Do not Remove."
 	errTagNotFound     = "Tag Not Found"
-	configFilename     = ".argo-tracker.yml"
+	configFilename     = ".gitlab-tracker.yml"
 	tagSuffixSeparator = "@"
 )
 

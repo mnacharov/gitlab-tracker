@@ -1,6 +1,6 @@
-# argo-tracker
+# gitlab-tracker
 
-Separate your releases and specification changes.
+Separate your releases and specification changes or something else.
 
 ## Configuration
 
@@ -16,9 +16,9 @@ hooks:
   - "--server=$ARGOCD_SERVER"
   - "--auth-token=$ARGOCD_TOKEN"
 rules:
-- path: application/production/**
-  tag: application
-  tagSuffuxFileRef:
-    file: application/production/application.Deployment.yaml
-    regexp: eu.gcr.io/org/proj/application:(.*)$
+  - path: application/production/**
+    tag: application
+    tagSuffuxFileRef:
+      file: application/production/application.Deployment.yaml
+      regexp: eu.gcr.io/org/proj/application:(.*)$
 ```
