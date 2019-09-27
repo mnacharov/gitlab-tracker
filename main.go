@@ -84,10 +84,16 @@ type TagSuffuxFileRef struct {
 
 func main() {
 	flag.Parse()
+
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors: true,
+	})
+
 	tracker, err := NewTracker()
 	if err != nil {
 		logrus.Fatal(err)
 	}
+
 	err = tracker.UpdateTags(*forceFlag)
 	if err != nil {
 		logrus.Fatal(err)
