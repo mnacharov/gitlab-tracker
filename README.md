@@ -25,6 +25,7 @@ hooks:
 rules:
   - path: application/production/**
     tag: application
+    tagSuffixSeparator: "@"
     tagSuffuxFileRef:
       file: application/production/application.Deployment.yaml
       regexp: eu.gcr.io/org/proj/application:(.*)$

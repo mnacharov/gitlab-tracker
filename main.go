@@ -24,10 +24,11 @@ import (
 )
 
 const (
-	tagMessage         = "Auto-generated. Do not Remove."
-	errTagNotFound     = "Tag Not Found"
-	configFilename     = ".gitlab-tracker.yml"
-	tagSuffixSeparator = "@"
+	tagMessage     = "Auto-generated. Do not Remove."
+	errTagNotFound = "Tag Not Found"
+	configFilename = ".gitlab-tracker.yml"
+
+	defaultTagSuffixSeparator = "@"
 )
 
 var (
@@ -67,11 +68,12 @@ type HooksConfig struct {
 }
 
 type Rule struct {
-	Path             string            `yaml:"path"`
-	Tag              string            `yaml:"tag"`
-	TagWithSuffix    string            `yaml:"-"`
-	TagSuffux        string            `yaml:"tagSuffux"`
-	TagSuffuxFileRef *TagSuffuxFileRef `yaml:"tagSuffuxFileRef"`
+	Path               string            `yaml:"path"`
+	Tag                string            `yaml:"tag"`
+	TagWithSuffix      string            `yaml:"-"`
+	TagSuffux          string            `yaml:"tagSuffux"`
+	TagSuffixSeparator string            `yaml:"tagSuffixSeparator"`
+	TagSuffuxFileRef   *TagSuffuxFileRef `yaml:"tagSuffuxFileRef"`
 }
 
 type TagSuffuxFileRef struct {
@@ -93,9 +95,13 @@ func main() {
 }
 
 func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
+	separator := r.TagSuffixSeparator
+	if len(separator) == 0 {
+		separator = defaultTagSuffixSeparator
+	}
 	if len(r.TagSuffux) > 0 {
 		suffix := tagSuffixReplacer.Replace(r.TagSuffux)
-		return tagSuffixSeparator + suffix, nil
+		return separator + suffix, nil
 	}
 	if r.TagSuffuxFileRef != nil {
 		suffix, err := r.TagSuffuxFileRef.GetSuffix(t.dir)
@@ -104,7 +110,7 @@ func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 		}
 		if len(suffix) > 0 {
 			suffix = tagSuffixReplacer.Replace(suffix)
-			return tagSuffixSeparator + suffix, nil
+			return separator + suffix, nil
 		}
 		return "", nil
 	}
