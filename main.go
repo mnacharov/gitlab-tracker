@@ -62,7 +62,8 @@ type Config struct {
 }
 
 type HooksConfig struct {
-	PostTagCommand []string `yaml:"postTagCommand"`
+	PostCreateTagCommand []string `yaml:"postCreateTagCommand"`
+	PostUpdateTagCommand []string `yaml:"postUpdateTagCommand"`
 }
 
 type Rule struct {
@@ -145,7 +146,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		return err
 	}
 	if !exists {
-		err = t.PostTagHooks(rule)
+		err = t.ExecTagHooks(rule, t.config.Hooks.PostCreateTagCommand)
 		if err != nil {
 			return err
 		}
@@ -161,6 +162,10 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		return nil
 	}
 	err = t.UpdateTag(tag, force, matches)
+	if err != nil {
+		return err
+	}
+	err = t.ExecTagHooks(rule, t.config.Hooks.PostUpdateTagCommand)
 	if err != nil {
 		return err
 	}
@@ -182,7 +187,7 @@ func (t *Tracker) UpdateTags(force bool) error {
 	return nil
 }
 
-func ProcessTagHookCommand(args []string, rule *Rule) (*exec.Cmd, error) {
+func ProcessTagHookCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	for i, templ := range args {
 		arg, err := gotmpl(templ, rule)
 		if err != nil {
@@ -200,12 +205,12 @@ func ProcessTagHookCommand(args []string, rule *Rule) (*exec.Cmd, error) {
 	return c, nil
 }
 
-func (t *Tracker) PostTagHooks(rule *Rule) error {
-	if len(t.config.Hooks.PostTagCommand) == 0 {
+func (t *Tracker) ExecTagHooks(rule *Rule, args []string) error {
+	if len(args) == 0 {
 		return nil
 	}
-	t.logger.Infof("Exec %v as PostTag command.", t.config.Hooks.PostTagCommand)
-	cmd, err := ProcessTagHookCommand(t.config.Hooks.PostTagCommand, rule)
+	t.logger.Infof("Exec %v as PostTag command.", args)
+	cmd, err := ProcessTagHookCommand(rule, args)
 	if err != nil {
 		return err
 	}

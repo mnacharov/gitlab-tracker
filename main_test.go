@@ -229,7 +229,7 @@ func TestProcessTagHookCommand(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		cmd, err := ProcessTagHookCommand(test.hookCommand, rule)
+		cmd, err := ProcessTagHookCommand(rule, test.hookCommand)
 		if err != nil {
 			t.Error(err)
 		}
@@ -240,11 +240,11 @@ func TestProcessTagHookCommand(t *testing.T) {
 			t.Errorf("Must be %s, but got %s", test.args, cmd.Args)
 		}
 	}
-	_, err := ProcessTagHookCommand([]string{"{{.TTTT"}, rule)
+	_, err := ProcessTagHookCommand(rule, []string{"{{.TTTT"})
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
-	_, err = ProcessTagHookCommand([]string{"{{.TTTT}}"}, rule)
+	_, err = ProcessTagHookCommand(rule, []string{"{{.TTTT}}"})
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
@@ -305,23 +305,23 @@ func TestPostTagHooks(t *testing.T) {
 		Tag:  "latest",
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostTagCommand: []string{},
+		PostCreateTagCommand: []string{},
 	}
-	err := tracker.PostTagHooks(rule)
+	err := tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostTagCommand: []string{"whoami"},
+		PostCreateTagCommand: []string{"whoami"},
 	}
-	err = tracker.PostTagHooks(rule)
+	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostTagCommand: []string{"{{.FOOBAR}}"},
+		PostCreateTagCommand: []string{"{{.FOOBAR}}"},
 	}
-	err = tracker.PostTagHooks(rule)
+	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}

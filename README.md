@@ -7,12 +7,19 @@ Separate your releases and specification changes or something else.
 ```yaml
 ---
 hooks:
-  postTagCommand:
+  postCreateTagCommand:
     - argocd
     - app
     - set
     - "{{.Tag}}"
     - "--revision={{.TagWithSuffix}}"
+    - "--server=$ARGOCD_SERVER"
+    - "--auth-token=$ARGOCD_TOKEN"
+  postUpdateTagCommand:
+    - argocd
+    - app
+    - sync
+    - "{{.Tag}}"
     - "--server=$ARGOCD_SERVER"
     - "--auth-token=$ARGOCD_TOKEN"
 rules:
