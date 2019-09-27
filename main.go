@@ -42,6 +42,7 @@ var (
 		},
 	}
 	forceFlag         = flag.Bool("force", true, "Force recreate tags.")
+	logLevelFlag      = flag.String("log-level", "INFO", "Level of logging.")
 	tagSuffixReplacer = strings.NewReplacer("/", "", ":", "-")
 )
 
@@ -88,6 +89,12 @@ func main() {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors: true,
 	})
+
+	lvl, err := logrus.ParseLevel(*logLevelFlag)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.SetLevel(lvl)
 
 	tracker, err := NewTracker()
 	if err != nil {
