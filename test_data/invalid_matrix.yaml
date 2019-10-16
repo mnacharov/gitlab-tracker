@@ -1,0 +1,11 @@
+---
+rules:
+- path: prepare-environment.sh
+  label: latest
+- path: prepare-environment.sh
+  label: latest
+  tagSuffuxFileRef:
+    file: filename
+    regexp: re
+matrix:
+  - foobar

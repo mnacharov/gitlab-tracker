@@ -91,7 +91,7 @@ func TestDiffStat(t *testing.T) {
 	}
 }
 
-func TestLoadRules(t *testing.T) {
+func TestLoadRules_Basic(t *testing.T) {
 	tracker := &Tracker{
 		logger: logrus.WithField("client", "git"),
 	}
@@ -110,6 +110,59 @@ func TestLoadRules(t *testing.T) {
 	err = tracker.LoadRules("test_data/invalid_tag.yaml")
 	if err == nil {
 		t.Error("Must be an error, but got nil")
+	}
+}
+
+func TestLoadRules_Matrix(t *testing.T) {
+	tracker := &Tracker{
+		logger: logrus.WithField("client", "git"),
+	}
+	err := tracker.LoadRules("test_data/invalid_matrix.yaml")
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	err = tracker.LoadRules("test_data/valid_matrix.yaml")
+	if err != nil {
+		t.Error(err)
+	}
+	if len(tracker.config.Rules) != len(tracker.config.Matrix) {
+		t.Errorf("Must be %d, but got %d", len(tracker.config.Matrix), len(tracker.config.Rules))
+	}
+	tests := []string{
+		"prepare-foobar1.sh",
+		"prepare-foobar2.sh",
+	}
+	for i, path := range tests {
+		if tracker.config.Rules[i].Path != path {
+			t.Errorf("Must be %s, but got %s", path, tracker.config.Rules[0].Path)
+		}
+	}
+}
+
+func TestLoadRules_MatrixFromDir(t *testing.T) {
+	tracker := &Tracker{
+		logger: logrus.WithField("client", "git"),
+	}
+	err := tracker.LoadRules("test_data/invalid_matrix_from_dir.yaml")
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	err = tracker.LoadRules("test_data/valid_matrix_from_dir.yaml")
+	if err != nil {
+		t.Error(err)
+	}
+	if len(tracker.config.Rules) != 3 {
+		t.Errorf("Must be %d, but got %d", 3, len(tracker.config.Rules))
+	}
+	tests := []string{
+		"prepare-itemA.sh",
+		"prepare-itemB.sh",
+		"prepare-itemC.sh",
+	}
+	for i, path := range tests {
+		if tracker.config.Rules[i].Path != path {
+			t.Errorf("Must be %s, but got %s", path, tracker.config.Rules[0].Path)
+		}
 	}
 }
 

@@ -1,0 +1,5 @@
+---
+rules:
+- path: prepare-{{.Item}}.sh
+  label: "{{.Item}}"
+matrixFromDir: foobar

@@ -43,6 +43,7 @@ var (
 	}
 	forceFlag         = flag.Bool("force", true, "Force recreate tags.")
 	logLevelFlag      = flag.String("log-level", "INFO", "Level of logging.")
+	validateFlag      = flag.Bool("validate", false, "Validate config and exit")
 	tagSuffixReplacer = strings.NewReplacer("/", "", ":", "-")
 )
 
@@ -59,8 +60,10 @@ type Tracker struct {
 }
 
 type Config struct {
-	Hooks HooksConfig `yaml:"hooks"`
-	Rules []*Rule     `yaml:"rules"`
+	Hooks         HooksConfig `yaml:"hooks"`
+	Rules         []*Rule     `yaml:"rules"`
+	Matrix        []string    `yaml:"matrix"`
+	MatrixFromDir string      `yaml:"matrixFromDir"`
 }
 
 type HooksConfig struct {
@@ -101,10 +104,86 @@ func main() {
 		logrus.Fatal(err)
 	}
 
+	if *validateFlag {
+		out, err := yaml.Marshal(tracker.config)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		fmt.Println(string(out))
+		return
+	}
+
 	err = tracker.UpdateTags(*forceFlag)
 	if err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func (r *Rule) ParseAsTemplate(data map[string]string) error {
+	if err := r.parseTmpl(data); err != nil {
+		return err
+	}
+	if r.TagSuffuxFileRef == nil {
+		return nil
+	}
+	if err := r.TagSuffuxFileRef.parseTmpl(data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Rule) Clone() *Rule {
+	dest := &Rule{
+		Path:               r.Path,
+		Tag:                r.Tag,
+		TagSuffux:          r.TagSuffux,
+		TagSuffixSeparator: r.TagSuffixSeparator,
+	}
+	if r.TagSuffuxFileRef != nil {
+		dest.TagSuffuxFileRef = r.TagSuffuxFileRef.Clone()
+	}
+	return dest
+}
+
+func (r *Rule) parseTmpl(data map[string]string) error {
+	var err error
+	r.Path, err = gotmpl(r.Path, data)
+	if err != nil {
+		return err
+	}
+	r.Tag, err = gotmpl(r.Tag, data)
+	if err != nil {
+		return err
+	}
+	r.TagSuffux, err = gotmpl(r.TagSuffux, data)
+	if err != nil {
+		return err
+	}
+	r.TagSuffixSeparator, err = gotmpl(r.TagSuffixSeparator, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *TagSuffuxFileRef) Clone() *TagSuffuxFileRef {
+	return &TagSuffuxFileRef{
+		File:      t.File,
+		RegExpRaw: t.RegExpRaw,
+	}
+}
+
+func (t *TagSuffuxFileRef) parseTmpl(data map[string]string) error {
+	var err error
+	t.File, err = gotmpl(t.File, data)
+	if err != nil {
+		return err
+	}
+	t.RegExpRaw, err = gotmpl(t.RegExpRaw, data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
@@ -372,6 +451,73 @@ func (t *Tracker) LoadEnvironment() error {
 	return nil
 }
 
+func (t *Tracker) templateRulesWithMatrixFromDir() error {
+	if len(t.config.MatrixFromDir) == 0 {
+		return nil
+	}
+	fi, err := ioutil.ReadDir(t.config.MatrixFromDir)
+	if err != nil {
+		return err
+	}
+	parsedRules := []*Rule{}
+	for _, item := range fi {
+		if !item.IsDir() {
+			continue
+		}
+		rule := t.config.Rules[0]
+		ref := rule.Clone()
+		ref.ParseAsTemplate(map[string]string{
+			"Item": path.Base(item.Name()),
+		})
+		parsedRules = append(parsedRules, ref)
+	}
+	t.config.Rules = parsedRules
+	return nil
+}
+
+func (t *Tracker) templateRulesWithMatrixRaw() error {
+	if len(t.config.Matrix) == 0 {
+		return nil
+	}
+	parsedRules := []*Rule{}
+	for _, item := range t.config.Matrix {
+		rule := t.config.Rules[0]
+		ref := rule.Clone()
+		ref.ParseAsTemplate(map[string]string{
+			"Item": item,
+		})
+		parsedRules = append(parsedRules, ref)
+	}
+	t.config.Rules = parsedRules
+	return nil
+}
+
+func (t *Tracker) ContainsMatrixSettings() bool {
+	if len(t.config.Matrix) > 0 {
+		return true
+	}
+	if len(t.config.MatrixFromDir) > 0 {
+		return true
+	}
+	return false
+}
+
+func (t *Tracker) TemplateRulesWithMatrix() error {
+	if !t.ContainsMatrixSettings() {
+		return nil
+	}
+	if len(t.config.Rules) > 1 || len(t.config.Rules) == 0 {
+		return errors.New("Matrix can be used only with single rule")
+	}
+	if err := t.templateRulesWithMatrixRaw(); err != nil {
+		return err
+	}
+	if err := t.templateRulesWithMatrixFromDir(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (t *Tracker) LoadRules(filename string) error {
 	t.logger.Infof("Load %s configuration file.", filename)
 	b, err := ioutil.ReadFile(filename)
@@ -380,6 +526,9 @@ func (t *Tracker) LoadRules(filename string) error {
 	}
 	err = yaml.Unmarshal(b, &t.config)
 	if err != nil {
+		return err
+	}
+	if err := t.TemplateRulesWithMatrix(); err != nil {
 		return err
 	}
 	for _, rule := range t.config.Rules {
