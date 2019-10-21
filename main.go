@@ -307,7 +307,7 @@ func (t *Tracker) ExecTagHooks(rule *Rule, args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	t.logger.Infof("Exec %v as PostTag command.", args)
+	t.logger.Debugf("Exec %v as PostTag command.", args)
 	cmd, err := ProcessTagHookCommand(rule, args)
 	if err != nil {
 		return err
@@ -551,7 +551,7 @@ func (t *Tracker) gitCommand(arg ...string) *exec.Cmd {
 }
 
 func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
-	t.logger.Infof("Diff head with %s.", sha)
+	t.logger.Debugf("Diff head with %s.", sha)
 	output, err := t.gitCommand("diff", head, sha, "--name-only").CombinedOutput()
 	if err != nil {
 		return nil, err
@@ -565,7 +565,7 @@ func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
 }
 
 func (t *Tracker) DiffStat(head, sha string, files []string) (string, error) {
-	t.logger.Infof("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
+	t.logger.Debugf("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
 	args := []string{"diff", "--stat", head, sha}
 	args = append(args, files...)
 	output, err := t.gitCommand(args...).CombinedOutput()
