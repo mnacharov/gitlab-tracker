@@ -256,7 +256,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	}
 	matches, match := rule.IsChangesMatch(changes)
 	if !match {
-		t.logger.Info("Nothing changed.")
+		t.logger.Debug("Nothing changed.")
 		return nil
 	}
 	err = t.UpdateTag(tag, force, matches)
