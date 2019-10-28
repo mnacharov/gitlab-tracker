@@ -389,7 +389,7 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 	opts := &gitlab.CreateReleaseNoteOptions{
 		Description: gitlab.String(message),
 	}
-	// It's okay if it fail
+	// It's okay if it fails
 	t.gitLab.Tags.CreateReleaseNote(t.proj, tag.Name, opts, nil)
 	return nil
 }
