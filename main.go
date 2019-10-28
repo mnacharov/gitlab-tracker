@@ -52,6 +52,7 @@ type Tracker struct {
 	git         string
 	gitLabToken string
 	gitLabURL   string
+	beforeRef   string
 	ref         string
 	proj        string
 	gitLab      *gitlab.Client
@@ -250,7 +251,12 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		}
 		return nil
 	}
-	changes, err := t.Diff(t.ref, rule.TagWithSuffix)
+	destRef := rule.TagWithSuffix
+	if len(t.beforeRef) > 0 {
+		// Try to use CI_COMMIT_BEFORE_SHA
+		destRef = t.beforeRef
+	}
+	changes, err := t.Diff(t.ref, destRef)
 	if err != nil {
 		return err
 	}
@@ -441,6 +447,7 @@ func (t *Tracker) LoadEnvironment() error {
 		return errors.New("gitlab api url bust be specified")
 	}
 	t.gitLabURL = baseURL
+	t.beforeRef = os.Getenv("CI_COMMIT_BEFORE_SHA")
 	ref := os.Getenv("CI_COMMIT_SHA")
 	if len(ref) == 0 {
 		return errors.New("commit sha must be specified")
