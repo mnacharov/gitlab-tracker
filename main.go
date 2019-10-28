@@ -379,6 +379,9 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 	if err != nil {
 		return err
 	}
+	if len(stat) == 0 {
+		return nil
+	}
 	message := fmt.Sprintf(
 		"<details><summary>Details</summary><pre><code>%s</code></pre></details>",
 		stat,
