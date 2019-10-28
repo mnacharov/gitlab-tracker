@@ -291,7 +291,7 @@ func ProcessTagHookCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 		if err != nil {
 			return nil, err
 		}
-		args[i] = arg
+		args[i] = os.ExpandEnv(arg)
 	}
 	if len(args) > 1 {
 		c := exec.Command(args[0], args[1:]...)
