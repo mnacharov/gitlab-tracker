@@ -532,7 +532,7 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 }
 
 func (t *Tracker) LoadRules(filename string) error {
-	t.logger.Infof("Load %s configuration file.", filename)
+	t.logger.Infof("Configuration file: %s", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
