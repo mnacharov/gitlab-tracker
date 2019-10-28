@@ -312,8 +312,11 @@ func (t *Tracker) ExecTagHooks(rule *Rule, args []string) error {
 	if err != nil {
 		return err
 	}
-	_, err = cmd.CombinedOutput()
-	return err
+	bytes, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%v: %s", err, string(bytes))
+	}
+	return nil
 }
 
 func gotmpl(templ string, data interface{}) (string, error) {
