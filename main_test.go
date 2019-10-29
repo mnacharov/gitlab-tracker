@@ -5,8 +5,6 @@ import (
 	"os/exec"
 	"regexp"
 	"testing"
-
-	"github.com/sirupsen/logrus"
 )
 
 func TestIsChangesMatch(t *testing.T) {
@@ -51,8 +49,7 @@ func TestDiff(t *testing.T) {
 		t.Fatal(err)
 	}
 	tracker := &Tracker{
-		logger: logrus.WithField("client", "git"),
-		git:    g,
+		git: g,
 	}
 	changes, err := tracker.Diff("4599ce4d09ef53a832d673fa471ecea52b69501d", "a7c947751dba7fc8ec1877baa33834c09d2a5df3")
 	if err != nil {
@@ -74,8 +71,7 @@ func TestDiffStat(t *testing.T) {
 		t.Fatal(err)
 	}
 	tracker := &Tracker{
-		logger: logrus.WithField("client", "git"),
-		git:    g,
+		git: g,
 	}
 	stat, err := tracker.DiffStat("4599ce4d09ef53a832d673fa471ecea52b69501d", "a7c947751dba7fc8ec1877baa33834c09d2a5df3", []string{"main.go"})
 	if err != nil {
@@ -92,9 +88,7 @@ func TestDiffStat(t *testing.T) {
 }
 
 func TestLoadRules_Basic(t *testing.T) {
-	tracker := &Tracker{
-		logger: logrus.WithField("client", "git"),
-	}
+	tracker := &Tracker{}
 	err := tracker.LoadRules("test_data/not-found.yaml")
 	if err == nil {
 		t.Error("Must be an error, but got nil")
@@ -114,9 +108,7 @@ func TestLoadRules_Basic(t *testing.T) {
 }
 
 func TestLoadRules_Matrix(t *testing.T) {
-	tracker := &Tracker{
-		logger: logrus.WithField("client", "git"),
-	}
+	tracker := &Tracker{}
 	err := tracker.LoadRules("test_data/invalid_matrix.yaml")
 	if err == nil {
 		t.Error("Must be an error, but got nil")
@@ -140,9 +132,7 @@ func TestLoadRules_Matrix(t *testing.T) {
 }
 
 func TestLoadRules_MatrixFromDir(t *testing.T) {
-	tracker := &Tracker{
-		logger: logrus.WithField("client", "git"),
-	}
+	tracker := &Tracker{}
 	err := tracker.LoadRules("test_data/invalid_matrix_from_dir.yaml")
 	if err == nil {
 		t.Error("Must be an error, but got nil")
@@ -373,9 +363,7 @@ func TestNewTracker(t *testing.T) {
 }
 
 func TestPostTagHooks(t *testing.T) {
-	tracker := &Tracker{
-		logger: logrus.WithField("client", "git"),
-	}
+	tracker := &Tracker{}
 	rule := &Rule{
 		Path: "test_data/**",
 		Tag:  "latest",
@@ -411,9 +399,7 @@ func TestPostTagHooks(t *testing.T) {
 }
 
 func TestExecCheck(t *testing.T) {
-	tracker := Tracker{
-		logger: logrus.WithField("client", "git"),
-	}
+	tracker := Tracker{}
 	tracker.config.Checks = ChecksConfig{
 		RetryConfig:      nil,
 		PreFlightCommand: []string{},

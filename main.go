@@ -56,7 +56,6 @@ type Tracker struct {
 	ref         string
 	proj        string
 	gitLab      *gitlab.Client
-	logger      *logrus.Entry
 	config      Config
 }
 
@@ -97,15 +96,9 @@ type TagSuffuxFileRef struct {
 func main() {
 	flag.Parse()
 
-	logrus.SetFormatter(&logrus.TextFormatter{
-		ForceColors: true,
-	})
-
-	lvl, err := logrus.ParseLevel(*logLevelFlag)
-	if err != nil {
+	if err := ConfigureLogging(*logLevelFlag); err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.SetLevel(lvl)
 
 	tracker, err := NewTracker()
 	if err != nil {
@@ -274,7 +267,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	}
 	matches, match := rule.IsChangesMatch(changes)
 	if !match {
-		t.logger.Debug("Nothing changed.")
+		logrus.Debug("Nothing changed.")
 		return nil
 	}
 	err = t.UpdateTag(tag, force, matches)
@@ -293,7 +286,7 @@ func (t *Tracker) Run(force bool) error {
 	if err != nil {
 		return fmt.Errorf("Pre flight check: failed. Error: %v", err)
 	}
-	t.logger.Info("Pre flight check: passed")
+	logrus.Info("Pre flight check: passed")
 
 	err = t.UpdateTags(force)
 	if err != nil {
@@ -308,7 +301,7 @@ func (t *Tracker) UpdateTags(force bool) error {
 		err := t.ProcessRule(rule, force)
 		if err != nil {
 			failed = true
-			t.logger.Error(err)
+			logrus.Error(err)
 		}
 	}
 	if failed {
@@ -340,7 +333,7 @@ func (t *Tracker) ExecCheck(args []string) error {
 		return nil
 	}
 	err := Retry(func(s *Stats) error {
-		t.logger.Debugf("Exec %v as Check command (%s).", args, s)
+		logrus.Debugf("Exec %v as Check command (%s).", args, s)
 		cmd, err := ProcessCommand(nil, args)
 		if err != nil {
 			return err
@@ -358,7 +351,7 @@ func (t *Tracker) ExecHook(rule *Rule, args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	t.logger.Debugf("Exec %v as PostTag command.", args)
+	logrus.Debugf("Exec %v as PostTag command.", args)
 	cmd, err := ProcessCommand(rule, args)
 	if err != nil {
 		return err
@@ -390,7 +383,7 @@ func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error
 	if err == nil {
 		return true, tag, nil
 	}
-	t.logger.Infof("Create '%s' tag.", tagName)
+	logrus.Infof("Create '%s' tag.", tagName)
 	tag, err = t.CreateTagForRef(tagName, t.ref)
 	if err != nil {
 		return false, nil, err
@@ -399,7 +392,7 @@ func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error
 }
 
 func (t Tracker) CreateTagForRef(tagName, ref string) (*gitlab.Tag, error) {
-	t.logger.Infof("Create '%s' tag with %s ref.", tagName, ref)
+	logrus.Infof("Create '%s' tag with %s ref.", tagName, ref)
 	opts := &gitlab.CreateTagOptions{
 		TagName: gitlab.String(tagName),
 		Ref:     gitlab.String(ref),
@@ -463,9 +456,8 @@ func NewTracker() (*Tracker, error) {
 		return nil, err
 	}
 	t := &Tracker{
-		git:    g,
-		dir:    d,
-		logger: logrus.WithField("client", "git"),
+		git: g,
+		dir: d,
 	}
 	err = t.LoadRules(path.Join(d, configFilename))
 	if err != nil {
@@ -577,7 +569,7 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 }
 
 func (t *Tracker) LoadRules(filename string) error {
-	t.logger.Debugf("Configuration file: %s", filename)
+	logrus.Debugf("Configuration file: %s", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
@@ -609,7 +601,7 @@ func (t *Tracker) gitCommand(arg ...string) *exec.Cmd {
 }
 
 func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
-	t.logger.Debugf("Diff head with %s.", sha)
+	logrus.Debugf("Diff head with %s.", sha)
 	output, err := t.gitCommand("diff", head, sha, "--name-only").CombinedOutput()
 	if err != nil {
 		return nil, err
@@ -623,7 +615,7 @@ func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
 }
 
 func (t *Tracker) DiffStat(head, sha string, files []string) (string, error) {
-	t.logger.Debugf("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
+	logrus.Debugf("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
 	args := []string{"diff", "--stat", head, sha}
 	args = append(args, files...)
 	output, err := t.gitCommand(args...).CombinedOutput()
