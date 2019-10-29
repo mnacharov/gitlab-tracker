@@ -2,6 +2,22 @@
 
 
 [[projects]]
+  digest = "1:90afd0cfdffcc3df7855160ee2954cbca286e23c4eb9cb3d075536c9e4e1b04f"
+  name = "github.com/agext/levenshtein"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0ded9c86537917af2ff89bc9c78de6bd58477894"
+  version = "v1.2.2"
+
+[[projects]]
+  digest = "1:2bf7da77216264bb61bd8cb5f3380a03ab509e8a826fe359008d4a6ba0789b13"
+  name = "github.com/apparentlymart/go-textseg"
+  packages = ["textseg"]
+  pruneopts = "UT"
+  revision = "fb01f485ebef760e5ee06d55e1b07534dda2d295"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:409182d54c9c0fed6d66f2a8b04dd9f7763e5d52aa39cf2f28c3a3b3ac05f127"
   name = "github.com/cloudfoundry/cli"
   packages = ["util/glob"]
@@ -26,12 +42,28 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:6c350fef24a4a1b89709569f6d910c916dd2df8afa2478cc2f80d931d2378bd4"
+  name = "github.com/hashicorp/hcl"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4e12e081a1db0d4a63805477f4cf661ecf7b452c"
+  version = "v2.0.0"
+
+[[projects]]
   digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
   pruneopts = "UT"
   revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
   version = "v1.0.2"
+
+[[projects]]
+  digest = "1:abf08734a6527df70ed361d7c369fb580e6840d8f7a6012e5f609fdfd93b4e48"
+  name = "github.com/mitchellh/go-wordwrap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9e67c67572bc5dd02aef930e2b0ae3c02a4b5a5c"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:04457f9f6f3ffc5fea48e71d62f2ca256637dee0a04d710288e27e05c8b41976"
@@ -48,6 +80,19 @@
   pruneopts = "UT"
   revision = "ee3313ca5478c4786248d63dd75e4cd8e1fad2db"
   version = "v0.19.0"
+
+[[projects]]
+  digest = "1:c21d2ff7c6577efcd731da470aeb5e5ce7a2ee3327b80da04e188d70ca3a46b7"
+  name = "github.com/zclconf/go-cty"
+  packages = [
+    "cty",
+    "cty/convert",
+    "cty/function",
+    "cty/set",
+  ]
+  pruneopts = "UT"
+  revision = "01e2a242a65eb6f8ee372ddcea68c111fd4da15e"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -80,6 +125,21 @@
   revision = "fae7ac547cb717d141c433a2a173315e216b64c4"
 
 [[projects]]
+  digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
+  name = "golang.org/x/text"
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm",
+  ]
+  pruneopts = "UT"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
+
+[[projects]]
   digest = "1:6eb6e3b6d9fffb62958cf7f7d88dbbe1dd6839436b0802e194c590667a40412a"
   name = "google.golang.org/appengine"
   packages = [
@@ -108,6 +168,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/cloudfoundry/cli/util/glob",
+    "github.com/hashicorp/hcl",
     "github.com/sirupsen/logrus",
     "github.com/xanzy/go-gitlab",
     "gopkg.in/yaml.v2",

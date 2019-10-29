@@ -18,15 +18,16 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/cli/util/glob"
+	"github.com/hashicorp/hcl"
 	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	tagMessage     = "Auto-generated. Do not Remove."
-	errTagNotFound = "Tag Not Found"
-	configFilename = ".gitlab-tracker.yml"
+	tagMessage         = "Auto-generated. Do not Remove."
+	errTagNotFound     = "Tag Not Found"
+	configFilenameBase = ".gitlab-tracker"
 
 	defaultTagSuffixSeparator = "@"
 )
@@ -60,37 +61,37 @@ type Tracker struct {
 }
 
 type Config struct {
-	Checks        ChecksConfig `yaml:"checks"`
-	Hooks         HooksConfig  `yaml:"hooks"`
-	Rules         []*Rule      `yaml:"rules"`
-	Matrix        []string     `yaml:"matrix"`
-	MatrixFromDir string       `yaml:"matrixFromDir"`
+	Checks        ChecksConfig `yaml:"checks" hcl:"checks"`
+	Hooks         HooksConfig  `yaml:"hooks" hcl:"hooks"`
+	Rules         []*Rule      `yaml:"rules" hcl:"rules"`
+	Matrix        []string     `yaml:"matrix" hcl:"matrix"`
+	MatrixFromDir string       `yaml:"matrixFromDir" hcl:"matrix_from_dir"`
 }
 
 type ChecksConfig struct {
-	RetryConfig      *RetryConfig `yaml:"retry"`
-	PreFlightCommand []string     `yaml:"preFlightCommand"`
+	RetryConfig      *RetryConfig `yaml:"retry" hcl:"retry"`
+	PreFlightCommand []string     `yaml:"preFlightCommand" hcl:"pre_flight_command"`
 }
 
 type HooksConfig struct {
-	PostCreateTagCommand []string `yaml:"postCreateTagCommand"`
-	PostUpdateTagCommand []string `yaml:"postUpdateTagCommand"`
+	PostCreateTagCommand []string `yaml:"postCreateTagCommand" hcl:"post_create_tag_command"`
+	PostUpdateTagCommand []string `yaml:"postUpdateTagCommand" hcl:"post_update_tag_command"`
 }
 
 type Rule struct {
-	Path               string            `yaml:"path"`
-	Tag                string            `yaml:"tag"`
-	TagWithSuffix      string            `yaml:"-"`
-	TagSuffux          string            `yaml:"tagSuffux"`
-	TagSuffixSeparator string            `yaml:"tagSuffixSeparator"`
-	TagSuffuxFileRef   *TagSuffuxFileRef `yaml:"tagSuffuxFileRef"`
+	Path               string            `yaml:"path" hcl:"path"`
+	Tag                string            `yaml:"tag" hcl:"tag"`
+	TagWithSuffix      string            `yaml:"-" hcl:"-"`
+	TagSuffix          string            `yaml:"tagSuffix" hcl:"tag_suffix"`
+	TagSuffixSeparator string            `yaml:"tagSuffixSeparator" hcl:"tag_suffix_separator"`
+	TagSuffixFileRef   *TagSuffixFileRef `yaml:"tagSuffixFileRef" hcl:"tag_suffix_file_ref"`
 }
 
-type TagSuffuxFileRef struct {
-	File      string         `yaml:"file"`
-	RegExpRaw string         `yaml:"regexp"`
-	Group     int            `yaml:"regexp_group"`
-	RegExp    *regexp.Regexp `yaml:"-"`
+type TagSuffixFileRef struct {
+	File      string         `yaml:"file" hcl:"file"`
+	RegExpRaw string         `yaml:"regexp" hcl:"regexp"`
+	Group     int            `yaml:"regexpGroup" hcl:"regexp_group"`
+	RegExp    *regexp.Regexp `yaml:"-" hcl:"-"`
 }
 
 func main() {
@@ -124,10 +125,10 @@ func (r *Rule) ParseAsTemplate(data map[string]string) error {
 	if err := r.parseTmpl(data); err != nil {
 		return err
 	}
-	if r.TagSuffuxFileRef == nil {
+	if r.TagSuffixFileRef == nil {
 		return nil
 	}
-	if err := r.TagSuffuxFileRef.parseTmpl(data); err != nil {
+	if err := r.TagSuffixFileRef.parseTmpl(data); err != nil {
 		return err
 	}
 	return nil
@@ -137,11 +138,11 @@ func (r *Rule) Clone() *Rule {
 	dest := &Rule{
 		Path:               r.Path,
 		Tag:                r.Tag,
-		TagSuffux:          r.TagSuffux,
+		TagSuffix:          r.TagSuffix,
 		TagSuffixSeparator: r.TagSuffixSeparator,
 	}
-	if r.TagSuffuxFileRef != nil {
-		dest.TagSuffuxFileRef = r.TagSuffuxFileRef.Clone()
+	if r.TagSuffixFileRef != nil {
+		dest.TagSuffixFileRef = r.TagSuffixFileRef.Clone()
 	}
 	return dest
 }
@@ -156,7 +157,7 @@ func (r *Rule) parseTmpl(data map[string]string) error {
 	if err != nil {
 		return err
 	}
-	r.TagSuffux, err = gotmpl(r.TagSuffux, data)
+	r.TagSuffix, err = gotmpl(r.TagSuffix, data)
 	if err != nil {
 		return err
 	}
@@ -167,15 +168,15 @@ func (r *Rule) parseTmpl(data map[string]string) error {
 	return nil
 }
 
-func (t *TagSuffuxFileRef) Clone() *TagSuffuxFileRef {
-	return &TagSuffuxFileRef{
+func (t *TagSuffixFileRef) Clone() *TagSuffixFileRef {
+	return &TagSuffixFileRef{
 		File:      t.File,
 		RegExpRaw: t.RegExpRaw,
 		Group:     t.Group,
 	}
 }
 
-func (t *TagSuffuxFileRef) parseTmpl(data map[string]string) error {
+func (t *TagSuffixFileRef) parseTmpl(data map[string]string) error {
 	var err error
 	t.File, err = gotmpl(t.File, data)
 	if err != nil {
@@ -193,12 +194,12 @@ func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 	if len(separator) == 0 {
 		separator = defaultTagSuffixSeparator
 	}
-	if len(r.TagSuffux) > 0 {
-		suffix := tagSuffixReplacer.Replace(r.TagSuffux)
+	if len(r.TagSuffix) > 0 {
+		suffix := tagSuffixReplacer.Replace(r.TagSuffix)
 		return separator + suffix, nil
 	}
-	if r.TagSuffuxFileRef != nil {
-		suffix, err := r.TagSuffuxFileRef.GetSuffix(t.dir)
+	if r.TagSuffixFileRef != nil {
+		suffix, err := r.TagSuffixFileRef.GetSuffix(t.dir)
 		if err != nil {
 			return "", err
 		}
@@ -211,7 +212,7 @@ func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 	return "", nil
 }
 
-func (t *TagSuffuxFileRef) GetSuffix(dir string) (string, error) {
+func (t *TagSuffixFileRef) GetSuffix(dir string) (string, error) {
 	filename := path.Join(dir, t.File)
 	output, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -459,7 +460,11 @@ func NewTracker() (*Tracker, error) {
 		git: g,
 		dir: d,
 	}
-	err = t.LoadRules(path.Join(d, configFilename))
+	filename, err := t.DiscoverConfigFile(d)
+	if err != nil {
+		return nil, err
+	}
+	err = t.LoadRules(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -568,28 +573,49 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 	return nil
 }
 
+func (t *Tracker) DiscoverConfigFile(dir string) (string, error) {
+	filename := path.Join(dir, fmt.Sprintf("%s.yml", configFilenameBase))
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		return filename, nil
+	}
+	filename = path.Join(dir, fmt.Sprintf("%s.hcl", configFilenameBase))
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		return filename, nil
+	}
+	return "", errors.New("Configuration file not found")
+}
+
 func (t *Tracker) LoadRules(filename string) error {
 	logrus.Debugf("Configuration file: %s", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(b, &t.config)
-	if err != nil {
-		return err
+
+	if strings.HasSuffix(filename, "hcl") {
+		err := hcl.Unmarshal(b, &t.config)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := yaml.Unmarshal(b, &t.config)
+		if err != nil {
+			return err
+		}
 	}
+
 	if err := t.TemplateRulesWithMatrix(); err != nil {
 		return err
 	}
 	for _, rule := range t.config.Rules {
-		if rule.TagSuffuxFileRef == nil {
+		if rule.TagSuffixFileRef == nil {
 			continue
 		}
-		re, err := regexp.Compile(rule.TagSuffuxFileRef.RegExpRaw)
+		re, err := regexp.Compile(rule.TagSuffixFileRef.RegExpRaw)
 		if err != nil {
-			return fmt.Errorf("Failed to parse '%s': %v", rule.TagSuffuxFileRef.RegExpRaw, err)
+			return fmt.Errorf("Failed to parse '%s': %v", rule.TagSuffixFileRef.RegExpRaw, err)
 		}
-		rule.TagSuffuxFileRef.RegExp = re
+		rule.TagSuffixFileRef.RegExp = re
 	}
 	return nil
 }

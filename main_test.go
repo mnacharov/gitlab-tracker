@@ -166,13 +166,13 @@ func TestGetTagSuffixForRule(t *testing.T) {
 	}{
 		{
 			rule: &Rule{
-				TagSuffux: "static",
+				TagSuffix: "static",
 			},
 			suffix: "@static",
 		},
 		{
 			rule: &Rule{
-				TagSuffuxFileRef: &TagSuffuxFileRef{
+				TagSuffixFileRef: &TagSuffixFileRef{
 					File:   "test_data/suffix_tag.yaml",
 					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/application:(.*)$`),
 				},
@@ -181,7 +181,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		},
 		{
 			rule: &Rule{
-				TagSuffuxFileRef: &TagSuffuxFileRef{
+				TagSuffixFileRef: &TagSuffixFileRef{
 					File:   "test_data/suffix_tag.yaml",
 					RegExp: regexp.MustCompile(`foobar:(.*)$`),
 				},
@@ -191,7 +191,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		{
 			rule: &Rule{
 				TagSuffixSeparator: "FOOBAR-",
-				TagSuffuxFileRef: &TagSuffuxFileRef{
+				TagSuffixFileRef: &TagSuffixFileRef{
 					File:   "test_data/suffix_digest.yaml",
 					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/application[:@](.*)$`),
 				},
@@ -201,7 +201,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		{
 			rule: &Rule{
 				TagSuffixSeparator: "FOOBAR-",
-				TagSuffuxFileRef: &TagSuffuxFileRef{
+				TagSuffixFileRef: &TagSuffixFileRef{
 					File:   "test_data/regexp_group_1.yaml",
 					RegExp: regexp.MustCompile(`(application|eu.gcr.io/org/proj/application)[:@](.*)$`),
 					Group:  2,
@@ -212,7 +212,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		{
 			rule: &Rule{
 				TagSuffixSeparator: "FOOBAR-",
-				TagSuffuxFileRef: &TagSuffuxFileRef{
+				TagSuffixFileRef: &TagSuffixFileRef{
 					File:   "test_data/regexp_group_2.yaml",
 					RegExp: regexp.MustCompile(`(application|eu.gcr.io/org/proj/application)[:@](.*)$`),
 					Group:  2,
@@ -239,7 +239,7 @@ func TestGetTagSuffixForRule(t *testing.T) {
 		t.Errorf("Must be empty, but got %s", suffix)
 	}
 	rule = &Rule{
-		TagSuffuxFileRef: &TagSuffuxFileRef{
+		TagSuffixFileRef: &TagSuffixFileRef{
 			File: "test_data/not-found.yaml",
 		},
 	}
@@ -435,5 +435,21 @@ func TestExecCheck(t *testing.T) {
 	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
 	if err == nil {
 		t.Errorf("Must be an error, but got nil")
+	}
+}
+
+func TestDiscoverConfigFile(t *testing.T) {
+	tracker := Tracker{}
+	_, err := tracker.DiscoverConfigFile("test_data/discover_rules")
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/yml")
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/hcl")
+	if err != nil {
+		t.Error(err)
 	}
 }

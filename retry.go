@@ -15,12 +15,13 @@ type Stats struct {
 }
 
 type RetryConfig struct {
-	Maximum         int           `yaml:"maximum"`
-	Interval        time.Duration `yaml:"interval"`
-	Increment       bool          `yaml:"increment"`
-	IntervalMaximum time.Duration `yaml:"intervalMaximum"`
-	Forever         bool          `yaml:"forever"`
-	Jitter          bool          `yaml:"jitter"`
+	Maximum         int           `yaml:"maximum" hcl:"maximum"`
+	Interval        time.Duration `yaml:"interval" hcl:"-"`
+	IntervalSeconds int           `yaml:"-" hcl:"interval_seconds"`
+	Increment       bool          `yaml:"increment" hcl:"increment"`
+	IntervalMaximum time.Duration `yaml:"intervalMaximum" hcl:"interval_maximum"`
+	Forever         bool          `yaml:"forever" hcl:"forever"`
+	Jitter          bool          `yaml:"jitter" hcl:"jitter"`
 }
 
 func (s *Stats) String() string {
@@ -58,6 +59,10 @@ func Retry(callback func(*Stats) error, config *RetryConfig) error {
 
 	if config.Increment && config.IntervalMaximum == 0 {
 		config.IntervalMaximum = time.Minute
+	}
+
+	if config.IntervalSeconds > 0 {
+		config.Interval = time.Duration(config.IntervalSeconds) * time.Second
 	}
 
 	if config.Forever && config.Interval == 0 {

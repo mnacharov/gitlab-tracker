@@ -1,0 +1,17 @@
+---
+checks:
+  retry:
+    maximum: 10
+    interval: 2s
+  preFlightCommand:
+    - argocd
+    - cluster
+    - list
+rules:
+- path: prepare-environment.sh
+  tag: latest
+- path: prepare-environment.sh
+  tag: latest
+  tagSuffixFileRef:
+    file: filename
+    regexp: re

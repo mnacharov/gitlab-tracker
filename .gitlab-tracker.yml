@@ -2,7 +2,7 @@
 rules:
 - path: test_data/{{.Item}}/**
   tag: "{{.Item}}-latest"
-  tagSuffuxFileRef:
+  tagSuffixFileRef:
     file: test_data/production/{{.Item}}.Deployment.yaml
     regexp: eu.gcr.io/org/proj/{{.Item}}:(.*)$
 matrixFromDir: test_data/test_dir

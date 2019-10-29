@@ -4,7 +4,7 @@ rules:
   label: latest
 - path: prepare-environment.sh
   label: latest
-  tagSuffuxFileRef:
+  tagSuffixFileRef:
     file: filename
     regexp: re
 matrix:

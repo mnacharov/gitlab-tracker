@@ -30,7 +30,7 @@ rules:
   - path: application/production/**
     tag: application
     tagSuffixSeparator: "@"
-    tagSuffuxFileRef:
+    tagSuffixFileRef:
       file: application/production/application.Deployment.yaml
       regexp: eu.gcr.io/org/proj/application:(.*)$
       # regexp_group: 1
