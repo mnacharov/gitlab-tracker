@@ -650,7 +650,7 @@ func (t *Tracker) DiffStat(head, sha string, files []string) (string, error) {
 	args = append(args, files...)
 	output, err := t.gitCommand(args...).CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%v: %s", err, string(output))
 	}
 	return string(output), nil
 }
