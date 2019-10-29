@@ -1,6 +1,7 @@
 # gitlab-tracker
 
 [![Build Status](https://travis-ci.com/leominov/gitlab-tracker.svg?branch=master)](https://travis-ci.com/leominov/gitlab-tracker)
+[![codecov](https://codecov.io/gh/leominov/gitlab-tracker/branch/master/graph/badge.svg)](https://codecov.io/gh/leominov/gitlab-tracker)
 
 Separate your releases and specification changes or something else.
 
