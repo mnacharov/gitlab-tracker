@@ -41,6 +41,10 @@
   name = "gopkg.in/yaml.v2"
   version = "2.2.2"
 
+[[constraint]]
+  name = "github.com/hashicorp/hcl"
+  revision = "914dc3f8dd7c463188c73fc47e9ced82a6e421ca"
+
 [prune]
   go-tests = true
   unused-packages = true
