@@ -9,6 +9,11 @@ Separate your releases and specification changes or something else.
 
 ```yaml
 ---
+checks:
+  preFlightCommand:
+    - argocd
+    - cluster
+    - list
 hooks:
   postCreateTagCommand:
     - argocd
