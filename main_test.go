@@ -212,9 +212,20 @@ func TestGetTagSuffixForRule(t *testing.T) {
 			rule: &Rule{
 				TagSuffixSeparator: "FOOBAR-",
 				TagSuffuxFileRef: &TagSuffuxFileRef{
-					File:   "test_data/suffix_digest.yaml",
-					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/(application)([:@])(.*)$`),
-					Group:  3,
+					File:   "test_data/regexp_group_1.yaml",
+					RegExp: regexp.MustCompile(`(application|eu.gcr.io/org/proj/application)[:@](.*)$`),
+					Group:  2,
+				},
+			},
+			suffix: "FOOBAR-1.0.0",
+		},
+		{
+			rule: &Rule{
+				TagSuffixSeparator: "FOOBAR-",
+				TagSuffuxFileRef: &TagSuffuxFileRef{
+					File:   "test_data/regexp_group_2.yaml",
+					RegExp: regexp.MustCompile(`(application|eu.gcr.io/org/proj/application)[:@](.*)$`),
+					Group:  2,
 				},
 			},
 			suffix: "FOOBAR-sha256-391be4b7b42d1374f6578e850e74bc4977a1d35cc3adad1fcf0940f74f0ac379",
