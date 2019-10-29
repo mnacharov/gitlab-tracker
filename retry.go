@@ -15,12 +15,12 @@ type Stats struct {
 }
 
 type RetryConfig struct {
-	Maximum         int
-	Interval        time.Duration
-	Increment       bool
-	IntervalMaximum time.Duration
-	Forever         bool
-	Jitter          bool
+	Maximum         int           `yaml:"maximum"`
+	Interval        time.Duration `yaml:"interval"`
+	Increment       bool          `yaml:"increment"`
+	IntervalMaximum time.Duration `yaml:"intervalMaximum"`
+	Forever         bool          `yaml:"forever"`
+	Jitter          bool          `yaml:"jitter"`
 }
 
 func (s *Stats) String() string {
