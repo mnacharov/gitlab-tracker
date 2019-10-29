@@ -506,7 +506,7 @@ func (t *Tracker) LoadEnvironment() error {
 	return nil
 }
 
-func (t *Tracker) templateRulesWithMatrixFromDir() error {
+func (t *Tracker) templateRulesWithMatrixFromDir(rule *Rule) error {
 	if len(t.config.MatrixFromDir) == 0 {
 		return nil
 	}
@@ -520,7 +520,6 @@ func (t *Tracker) templateRulesWithMatrixFromDir() error {
 		if !item.IsDir() {
 			continue
 		}
-		rule := t.config.Rules["matrix"]
 		ref := rule.Clone()
 		ref.ParseAsTemplate(map[string]string{
 			"Item": path.Base(item.Name()),
@@ -532,13 +531,12 @@ func (t *Tracker) templateRulesWithMatrixFromDir() error {
 	return nil
 }
 
-func (t *Tracker) templateRulesWithMatrixRaw() error {
+func (t *Tracker) templateRulesWithMatrixRaw(rule *Rule) error {
 	if len(t.config.Matrix) == 0 {
 		return nil
 	}
 	parsedRules := map[string]*Rule{}
 	for _, item := range t.config.Matrix {
-		rule := t.config.Rules["matrix"]
 		ref := rule.Clone()
 		ref.ParseAsTemplate(map[string]string{
 			"Item": item,
@@ -566,13 +564,14 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 	if len(t.config.Rules) > 1 || len(t.config.Rules) == 0 {
 		return errors.New("Matrix can be used only with single rule")
 	}
-	if _, ok := t.config.Rules["matrix"]; !ok {
+	matrixRule, ok := t.config.Rules["matrix"]
+	if !ok {
 		return errors.New("Matrix can be used only with rule that named as `matrix`")
 	}
-	if err := t.templateRulesWithMatrixRaw(); err != nil {
+	if err := t.templateRulesWithMatrixRaw(matrixRule); err != nil {
 		return err
 	}
-	if err := t.templateRulesWithMatrixFromDir(); err != nil {
+	if err := t.templateRulesWithMatrixFromDir(matrixRule); err != nil {
 		return err
 	}
 	return nil
