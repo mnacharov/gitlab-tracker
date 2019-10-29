@@ -8,10 +8,12 @@ checks:
     - cluster
     - list
 rules:
-- path: prepare-environment.sh
-  tag: latest
-- path: prepare-environment.sh
-  tag: latest
-  tagSuffixFileRef:
-    file: filename
-    regexp: re
+  foo:
+    path: prepare-environment1.sh
+    tag: latest
+  bar:
+    path: prepare-environment2.sh
+    tag: latest
+    tagSuffixFileRef:
+      file: filename
+      regexp: re

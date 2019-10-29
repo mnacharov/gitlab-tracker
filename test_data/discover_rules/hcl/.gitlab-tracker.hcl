@@ -10,21 +10,17 @@ checks {
     ]
 }
 
-rules = [
-    {
-        path = "prepare-environment.sh"
-        tag = "latest"
-    }
-]
+rules "foo" {
+    path = "prepare-environment1.sh"
+    tag = "latest"
+}
 
-rules = [
-    {
-        path = "prepare-environment.sh"
-        tag = "latest"
-        tag_suffix_file_ref {
-            file = "filename"
-            regexp = "re"
-            regexp_group = 10
-        }
+rules "bar" {
+    path = "prepare-environment2.sh"
+    tag = "latest"
+    tag_suffix_file_ref {
+        file = "filename"
+        regexp = "re"
+        regexp_group = 10
     }
-]
+}

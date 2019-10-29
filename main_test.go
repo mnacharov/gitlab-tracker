@@ -111,22 +111,28 @@ func TestLoadRules_Matrix(t *testing.T) {
 	tracker := &Tracker{}
 	err := tracker.LoadRules("test_data/invalid_matrix.yaml")
 	if err == nil {
-		t.Error("Must be an error, but got nil")
+		t.Fatal("Must be an error, but got nil")
 	}
+	tracker = &Tracker{}
 	err = tracker.LoadRules("test_data/valid_matrix.yaml")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if len(tracker.config.Rules) != len(tracker.config.Matrix) {
 		t.Errorf("Must be %d, but got %d", len(tracker.config.Matrix), len(tracker.config.Rules))
 	}
-	tests := []string{
-		"prepare-foobar1.sh",
-		"prepare-foobar2.sh",
+	tests := map[string]string{
+		"foobar1": "prepare-foobar1.sh",
+		"foobar2": "prepare-foobar2.sh",
 	}
-	for i, path := range tests {
-		if tracker.config.Rules[i].Path != path {
-			t.Errorf("Must be %s, but got %s", path, tracker.config.Rules[0].Path)
+	for name, path := range tests {
+		r, ok := tracker.config.Rules[name]
+		if !ok {
+			t.Errorf("Rule name %s not found", name)
+			continue
+		}
+		if r.Path != path {
+			t.Errorf("Must be %s, but got %s", path, r.Path)
 		}
 	}
 }
@@ -135,23 +141,29 @@ func TestLoadRules_MatrixFromDir(t *testing.T) {
 	tracker := &Tracker{}
 	err := tracker.LoadRules("test_data/invalid_matrix_from_dir.yaml")
 	if err == nil {
-		t.Error("Must be an error, but got nil")
+		t.Fatal("Must be an error, but got nil")
 	}
+	tracker = &Tracker{}
 	err = tracker.LoadRules("test_data/valid_matrix_from_dir.yaml")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if len(tracker.config.Rules) != 3 {
 		t.Errorf("Must be %d, but got %d", 3, len(tracker.config.Rules))
 	}
-	tests := []string{
-		"prepare-itemA.sh",
-		"prepare-itemB.sh",
-		"prepare-itemC.sh",
+	tests := map[string]string{
+		"matrix-0": "prepare-itemA.sh",
+		"matrix-1": "prepare-itemB.sh",
+		"matrix-2": "prepare-itemC.sh",
 	}
-	for i, path := range tests {
-		if tracker.config.Rules[i].Path != path {
-			t.Errorf("Must be %s, but got %s", path, tracker.config.Rules[0].Path)
+	for name, path := range tests {
+		r, ok := tracker.config.Rules[name]
+		if !ok {
+			t.Errorf("Rule name %s not found", name)
+			continue
+		}
+		if r.Path != path {
+			t.Errorf("Must be %s, but got %s", path, r.Path)
 		}
 	}
 }

@@ -61,11 +61,11 @@ type Tracker struct {
 }
 
 type Config struct {
-	Checks        ChecksConfig `yaml:"checks" hcl:"checks"`
-	Hooks         HooksConfig  `yaml:"hooks" hcl:"hooks"`
-	Rules         []*Rule      `yaml:"rules" hcl:"rules"`
-	Matrix        []string     `yaml:"matrix" hcl:"matrix"`
-	MatrixFromDir string       `yaml:"matrixFromDir" hcl:"matrix_from_dir"`
+	Checks        ChecksConfig     `yaml:"checks" hcl:"checks"`
+	Hooks         HooksConfig      `yaml:"hooks" hcl:"hooks"`
+	Rules         map[string]*Rule `yaml:"rules" hcl:"rules"`
+	Matrix        []string         `yaml:"matrix" hcl:"matrix"`
+	MatrixFromDir string           `yaml:"matrixFromDir" hcl:"matrix_from_dir"`
 }
 
 type ChecksConfig struct {
@@ -514,17 +514,19 @@ func (t *Tracker) templateRulesWithMatrixFromDir() error {
 	if err != nil {
 		return err
 	}
-	parsedRules := []*Rule{}
+	parsedRules := map[string]*Rule{}
+	var i int
 	for _, item := range fi {
 		if !item.IsDir() {
 			continue
 		}
-		rule := t.config.Rules[0]
+		rule := t.config.Rules["matrix"]
 		ref := rule.Clone()
 		ref.ParseAsTemplate(map[string]string{
 			"Item": path.Base(item.Name()),
 		})
-		parsedRules = append(parsedRules, ref)
+		parsedRules[fmt.Sprintf("matrix-%d", i)] = ref
+		i++
 	}
 	t.config.Rules = parsedRules
 	return nil
@@ -534,14 +536,14 @@ func (t *Tracker) templateRulesWithMatrixRaw() error {
 	if len(t.config.Matrix) == 0 {
 		return nil
 	}
-	parsedRules := []*Rule{}
+	parsedRules := map[string]*Rule{}
 	for _, item := range t.config.Matrix {
-		rule := t.config.Rules[0]
+		rule := t.config.Rules["matrix"]
 		ref := rule.Clone()
 		ref.ParseAsTemplate(map[string]string{
 			"Item": item,
 		})
-		parsedRules = append(parsedRules, ref)
+		parsedRules[item] = ref
 	}
 	t.config.Rules = parsedRules
 	return nil
@@ -563,6 +565,9 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 	}
 	if len(t.config.Rules) > 1 || len(t.config.Rules) == 0 {
 		return errors.New("Matrix can be used only with single rule")
+	}
+	if _, ok := t.config.Rules["matrix"]; !ok {
+		return errors.New("Matrix can be used only with rule that named as `matrix`")
 	}
 	if err := t.templateRulesWithMatrixRaw(); err != nil {
 		return err

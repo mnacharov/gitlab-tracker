@@ -1,9 +1,11 @@
 ---
 rules:
-- path: prepare-environment.sh
-  label: latest
-- path: prepare-environment.sh
-  label: latest
-  tagSuffixFileRef:
-    file: filename
-    regexp: ((re
+  foo:
+    path: prepare-environment.sh
+    label: latest
+  bar:
+    path: prepare-environment.sh
+    label: latest
+    tagSuffixFileRef:
+      file: filename
+      regexp: ((re

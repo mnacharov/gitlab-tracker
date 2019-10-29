@@ -1,5 +1,6 @@
 ---
 rules:
-- path: prepare-{{.Item}}.sh
-  label: "{{.Item}}"
+  matrix:
+    path: prepare-{{.Item}}.sh
+    label: "{{.Item}}"
 matrixFromDir: test_data/test_dir
