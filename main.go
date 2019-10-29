@@ -485,23 +485,23 @@ func NewTracker() (*Tracker, error) {
 func (t *Tracker) LoadEnvironment() error {
 	token := os.Getenv("GITLAB_TOKEN")
 	if len(token) == 0 {
-		return errors.New("gitlab token must be specified")
+		return errors.New("GITLAB_TOKEN must be specified")
 	}
 	t.gitLabToken = token
 	baseURL := os.Getenv("CI_API_V4_URL")
 	if len(baseURL) == 0 {
-		return errors.New("gitlab api url bust be specified")
+		return errors.New("CI_API_V4_URL must be specified")
 	}
 	t.gitLabURL = baseURL
 	t.beforeRef = os.Getenv("CI_COMMIT_BEFORE_SHA")
 	ref := os.Getenv("CI_COMMIT_SHA")
 	if len(ref) == 0 {
-		return errors.New("commit sha must be specified")
+		return errors.New("CI_COMMIT_SHA must be specified")
 	}
 	t.ref = ref
 	proj := os.Getenv("CI_PROJECT_PATH")
 	if len(proj) == 0 {
-		return errors.New("project must be specified")
+		return errors.New("CI_PROJECT_PATH must be specified")
 	}
 	t.proj = proj
 	return nil
