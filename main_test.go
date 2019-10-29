@@ -278,7 +278,7 @@ func isSimilarStringMaps(a, b []string) bool {
 	return true
 }
 
-func TestProcessTagHookCommand(t *testing.T) {
+func TestProcessCommand(t *testing.T) {
 	rule := &Rule{
 		Tag:           "tag",
 		TagWithSuffix: "tag@suffix",
@@ -305,7 +305,7 @@ func TestProcessTagHookCommand(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		cmd, err := ProcessTagHookCommand(rule, test.hookCommand)
+		cmd, err := ProcessCommand(rule, test.hookCommand)
 		if err != nil {
 			t.Error(err)
 		}
@@ -316,11 +316,11 @@ func TestProcessTagHookCommand(t *testing.T) {
 			t.Errorf("Must be %s, but got %s", test.args, cmd.Args)
 		}
 	}
-	_, err := ProcessTagHookCommand(rule, []string{"{{.TTTT"})
+	_, err := ProcessCommand(rule, []string{"{{.TTTT"})
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
-	_, err = ProcessTagHookCommand(rule, []string{"{{.TTTT}}"})
+	_, err = ProcessCommand(rule, []string{"{{.TTTT}}"})
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
@@ -383,29 +383,71 @@ func TestPostTagHooks(t *testing.T) {
 	tracker.config.Hooks = HooksConfig{
 		PostCreateTagCommand: []string{},
 	}
-	err := tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err := tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
 	tracker.config.Hooks = HooksConfig{
 		PostCreateTagCommand: []string{"whoami"},
 	}
-	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
 	tracker.config.Hooks = HooksConfig{
 		PostCreateTagCommand: []string{"{{.FOOBAR}}"},
 	}
-	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
 	tracker.config.Hooks = HooksConfig{
 		PostCreateTagCommand: []string{"not-found-binary"},
 	}
-	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
+	}
+}
+
+func TestExecCheck(t *testing.T) {
+	tracker := Tracker{
+		logger: logrus.WithField("client", "git"),
+	}
+	tracker.config.Checks = ChecksConfig{
+		RetryConfig:      nil,
+		PreFlightCommand: []string{},
+	}
+	err := tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		RetryConfig:      nil,
+		PreFlightCommand: []string{"whoami"},
+	}
+	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		RetryConfig: &RetryConfig{
+			Maximum: 1,
+		},
+		PreFlightCommand: []string{"not-found-binary"},
+	}
+	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	if err == nil {
+		t.Errorf("Must be an error, but got nil")
+	}
+	tracker.config.Checks = ChecksConfig{
+		RetryConfig: &RetryConfig{
+			Maximum: 1,
+		},
+		PreFlightCommand: []string{"{{.FOOBAR}}"},
+	}
+	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	if err == nil {
+		t.Errorf("Must be an error, but got nil")
 	}
 }

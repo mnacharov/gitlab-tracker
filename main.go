@@ -61,10 +61,16 @@ type Tracker struct {
 }
 
 type Config struct {
-	Hooks         HooksConfig `yaml:"hooks"`
-	Rules         []*Rule     `yaml:"rules"`
-	Matrix        []string    `yaml:"matrix"`
-	MatrixFromDir string      `yaml:"matrixFromDir"`
+	Checks        ChecksConfig `yaml:"checks"`
+	Hooks         HooksConfig  `yaml:"hooks"`
+	Rules         []*Rule      `yaml:"rules"`
+	Matrix        []string     `yaml:"matrix"`
+	MatrixFromDir string       `yaml:"matrixFromDir"`
+}
+
+type ChecksConfig struct {
+	RetryConfig      *RetryConfig `yaml:"retry"`
+	PreFlightCommand []string     `yaml:"preFlightCommand"`
 }
 
 type HooksConfig struct {
@@ -115,7 +121,7 @@ func main() {
 		return
 	}
 
-	err = tracker.UpdateTags(*forceFlag)
+	err = tracker.Run(*forceFlag)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -251,7 +257,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		return err
 	}
 	if !exists {
-		err = t.ExecTagHooks(rule, t.config.Hooks.PostCreateTagCommand)
+		err = t.ExecHook(rule, t.config.Hooks.PostCreateTagCommand)
 		if err != nil {
 			return err
 		}
@@ -275,7 +281,19 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	if err != nil {
 		return err
 	}
-	err = t.ExecTagHooks(rule, t.config.Hooks.PostUpdateTagCommand)
+	err = t.ExecHook(rule, t.config.Hooks.PostUpdateTagCommand)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *Tracker) Run(force bool) error {
+	err := t.ExecCheck(t.config.Checks.PreFlightCommand)
+	if err != nil {
+		return err
+	}
+	err = t.UpdateTags(force)
 	if err != nil {
 		return err
 	}
@@ -297,7 +315,7 @@ func (t *Tracker) UpdateTags(force bool) error {
 	return nil
 }
 
-func ProcessTagHookCommand(rule *Rule, args []string) (*exec.Cmd, error) {
+func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	for i, templ := range args {
 		arg, err := gotmpl(templ, rule)
 		if err != nil {
@@ -315,12 +333,31 @@ func ProcessTagHookCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	return c, nil
 }
 
-func (t *Tracker) ExecTagHooks(rule *Rule, args []string) error {
+func (t *Tracker) ExecCheck(args []string) error {
+	if len(args) == 0 {
+		return nil
+	}
+	err := Retry(func(s *Stats) error {
+		t.logger.Debugf("Exec %v as Check command (%s).", args, s)
+		cmd, err := ProcessCommand(nil, args)
+		if err != nil {
+			return err
+		}
+		bytes, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("%v: %s", err, string(bytes))
+		}
+		return nil
+	}, t.config.Checks.RetryConfig)
+	return err
+}
+
+func (t *Tracker) ExecHook(rule *Rule, args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
 	t.logger.Debugf("Exec %v as PostTag command.", args)
-	cmd, err := ProcessTagHookCommand(rule, args)
+	cmd, err := ProcessCommand(rule, args)
 	if err != nil {
 		return err
 	}
