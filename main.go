@@ -291,8 +291,10 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 func (t *Tracker) Run(force bool) error {
 	err := t.ExecCheck(t.config.Checks.PreFlightCommand)
 	if err != nil {
-		return err
+		return fmt.Errorf("Pre flight check: failed. Error: %v", err)
 	}
+	t.logger.Info("Pre flight check: passed")
+
 	err = t.UpdateTags(force)
 	if err != nil {
 		return err
