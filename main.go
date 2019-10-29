@@ -84,7 +84,7 @@ type Rule struct {
 type TagSuffuxFileRef struct {
 	File      string         `yaml:"file"`
 	RegExpRaw string         `yaml:"regexp"`
-	Group     int            `yaml:"group"`
+	Group     int            `yaml:"regexp_group"`
 	RegExp    *regexp.Regexp `yaml:"-"`
 }
 
