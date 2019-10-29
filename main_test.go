@@ -208,14 +208,25 @@ func TestGetTagSuffixForRule(t *testing.T) {
 			},
 			suffix: "FOOBAR-sha256-391be4b7b42d1374f6578e850e74bc4977a1d35cc3adad1fcf0940f74f0ac379",
 		},
+		{
+			rule: &Rule{
+				TagSuffixSeparator: "FOOBAR-",
+				TagSuffuxFileRef: &TagSuffuxFileRef{
+					File:   "test_data/suffix_digest.yaml",
+					RegExp: regexp.MustCompile(`eu.gcr.io/org/proj/(application)([:@])(.*)$`),
+					Group:  3,
+				},
+			},
+			suffix: "FOOBAR-sha256-391be4b7b42d1374f6578e850e74bc4977a1d35cc3adad1fcf0940f74f0ac379",
+		},
 	}
-	for _, test := range tests {
+	for i, test := range tests {
 		suffix, err := tracker.GetTagSuffixForRule(test.rule)
 		if err != nil {
-			t.Error(err)
+			t.Error(i, err)
 		}
 		if suffix != test.suffix {
-			t.Errorf("Must be %s, but got %s", test.suffix, suffix)
+			t.Errorf("%d. Must be %s, but got %s", i, test.suffix, suffix)
 		}
 	}
 	rule := &Rule{}
@@ -374,6 +385,13 @@ func TestPostTagHooks(t *testing.T) {
 	}
 	tracker.config.Hooks = HooksConfig{
 		PostCreateTagCommand: []string{"{{.FOOBAR}}"},
+	}
+	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	tracker.config.Hooks = HooksConfig{
+		PostCreateTagCommand: []string{"not-found-binary"},
 	}
 	err = tracker.ExecTagHooks(rule, tracker.config.Hooks.PostCreateTagCommand)
 	if err == nil {

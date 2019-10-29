@@ -84,6 +84,7 @@ type Rule struct {
 type TagSuffuxFileRef struct {
 	File      string         `yaml:"file"`
 	RegExpRaw string         `yaml:"regexp"`
+	Group     int            `yaml:"group"`
 	RegExp    *regexp.Regexp `yaml:"-"`
 }
 
@@ -171,6 +172,7 @@ func (t *TagSuffuxFileRef) Clone() *TagSuffuxFileRef {
 	return &TagSuffuxFileRef{
 		File:      t.File,
 		RegExpRaw: t.RegExpRaw,
+		Group:     t.Group,
 	}
 }
 
@@ -224,8 +226,12 @@ func (t *TagSuffuxFileRef) GetSuffix(dir string) (string, error) {
 			continue
 		}
 		results := t.RegExp.FindStringSubmatch(line)
-		if len(results) > 1 {
-			return results[1], nil
+		groupID := t.Group
+		if groupID == 0 {
+			groupID = 1
+		}
+		if len(results) > groupID {
+			return results[groupID], nil
 		}
 	}
 	return "", err
