@@ -14,7 +14,10 @@ rules = [
     {
         path = "prepare-environment.sh"
         tag = "latest"
-    },
+    }
+]
+
+rules = [
     {
         path = "prepare-environment.sh"
         tag = "latest"
