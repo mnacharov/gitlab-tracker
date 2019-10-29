@@ -21,6 +21,7 @@ rules = [
         tag_suffix_file_ref {
             file = "filename"
             regexp = "re"
+            regexp_group = 10
         }
     }
 ]
