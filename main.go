@@ -29,6 +29,11 @@ const (
 	configFilenameBase = ".gitlab-tracker"
 
 	defaultTagSuffixSeparator = "@"
+
+	PostCreateTagCommandType = "PostCreateTag"
+	PostUpdateTagCommandType = "PostUpdateTag"
+	PreFlightCommandType     = "PreFlight"
+	PostFlightCommandType    = "PostFlight"
 )
 
 var (
@@ -63,7 +68,8 @@ type Config struct {
 }
 
 type ChecksConfig struct {
-	PreFlight map[string]*Command `yaml:"preFlight" hcl:"pre_flight"`
+	PreFlight  map[string]*Command `yaml:"preFlight" hcl:"pre_flight"`
+	PostFlight map[string]*Command `yaml:"postFlight" hcl:"post_flight"`
 }
 
 type HooksConfig struct {
@@ -249,7 +255,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		return err
 	}
 	if !exists {
-		err = t.ExecCommandMap("PostCreateTag", t.config.Hooks.PostCreateTag, rule)
+		err = t.ExecCommandMap(PostCreateTagCommandType, t.config.Hooks.PostCreateTag, rule)
 		if err != nil {
 			return err
 		}
@@ -273,22 +279,46 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	if err != nil {
 		return err
 	}
-	err = t.ExecCommandMap("PostUpdateTag", t.config.Hooks.PostUpdateTag, rule)
+	err = t.ExecCommandMap(PostUpdateTagCommandType, t.config.Hooks.PostUpdateTag, rule)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (t *Tracker) Run(force bool) error {
-	err := t.ExecCommandMap("PreFlight", t.config.Checks.PreFlight, nil)
-	if err != nil {
-		return fmt.Errorf("Pre flight check: failed. %v", err)
+func (t *Tracker) RunChecksPreFlight() error {
+	if len(t.config.Checks.PreFlight) == 0 {
+		return nil
 	}
-	logrus.Info("Pre flight check: passed")
-
-	err = t.UpdateTags(force)
+	err := t.ExecCommandMap(PreFlightCommandType, t.config.Checks.PreFlight, nil)
 	if err != nil {
+		return fmt.Errorf("Pre flight checks: failed. %v", err)
+	}
+	logrus.Info("Pre flight checks: passed")
+	return nil
+}
+
+func (t *Tracker) RunChecksPostFlight() error {
+	if len(t.config.Checks.PostFlight) == 0 {
+		return nil
+	}
+	err := t.ExecCommandMap(PostFlightCommandType, t.config.Checks.PostFlight, nil)
+	if err != nil {
+		return fmt.Errorf("Post flight checks: failed. %v", err)
+	}
+	logrus.Info("Post flight checks: passed")
+	return nil
+}
+
+func (t *Tracker) Run(force bool) error {
+	if err := t.RunChecksPreFlight(); err != nil {
+		return err
+	}
+	err := t.UpdateTags(force)
+	if err != nil {
+		return err
+	}
+	if err := t.RunChecksPostFlight(); err != nil {
 		return err
 	}
 	return nil
