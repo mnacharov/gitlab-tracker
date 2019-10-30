@@ -6,11 +6,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestRetryTransport(t *testing.T) {
 	var counter int
 	var httpCode = http.StatusInternalServerError
+
+	logrus.SetLevel(logrus.DebugLevel)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if counter == 2 {

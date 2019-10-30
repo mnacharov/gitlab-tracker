@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/sirupsen/logrus"
 )
 
 func RetryTransport() http.RoundTripper {
 	client := retryablehttp.NewClient()
+	client.Logger = log.New(logrus.StandardLogger().WriterLevel(logrus.DebugLevel), "transport: ", 0)
 	client.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if err == nil && resp.StatusCode == 429 {
 			return true, nil
