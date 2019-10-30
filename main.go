@@ -69,13 +69,17 @@ type Config struct {
 }
 
 type ChecksConfig struct {
-	RetryConfig      *RetryConfig `yaml:"retry" hcl:"retry"`
-	PreFlightCommand []string     `yaml:"preFlightCommand" hcl:"pre_flight_command"`
+	PreFlight *Command `yaml:"preFlight" hcl:"pre_flight"`
 }
 
 type HooksConfig struct {
-	PostCreateTagCommand []string `yaml:"postCreateTagCommand" hcl:"post_create_tag_command"`
-	PostUpdateTagCommand []string `yaml:"postUpdateTagCommand" hcl:"post_update_tag_command"`
+	PostCreateTag *Command `yaml:"postCreateTag" hcl:"post_create_tag"`
+	PostUpdateTag *Command `yaml:"postUpdateTag" hcl:"post_update_tag"`
+}
+
+type Command struct {
+	RetryConfig *RetryConfig `yaml:"retry" hcl:"retry"`
+	Command     []string     `yaml:"command" hcl:"command"`
 }
 
 type Rule struct {
@@ -251,7 +255,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		return err
 	}
 	if !exists {
-		err = t.ExecHook(rule, t.config.Hooks.PostCreateTagCommand)
+		err = t.ExecHook(rule, t.config.Hooks.PostCreateTag)
 		if err != nil {
 			return err
 		}
@@ -275,7 +279,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	if err != nil {
 		return err
 	}
-	err = t.ExecHook(rule, t.config.Hooks.PostUpdateTagCommand)
+	err = t.ExecHook(rule, t.config.Hooks.PostUpdateTag)
 	if err != nil {
 		return err
 	}
@@ -283,7 +287,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 }
 
 func (t *Tracker) Run(force bool) error {
-	err := t.ExecCheck(t.config.Checks.PreFlightCommand)
+	err := t.ExecCheck(t.config.Checks.PreFlight)
 	if err != nil {
 		return fmt.Errorf("Pre flight check: failed. Error: %v", err)
 	}
@@ -330,13 +334,13 @@ func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	return c, nil
 }
 
-func (t *Tracker) ExecCheck(args []string) error {
-	if len(args) == 0 {
+func (t *Tracker) ExecCheck(command *Command) error {
+	if command == nil || len(command.Command) == 0 {
 		return nil
 	}
 	err := Retry(func(s *Stats) error {
-		logrus.Debugf("Exec %v as Check command (%s).", args, s)
-		cmd, err := ProcessCommand(nil, args)
+		logrus.Debugf("Exec %v as Check command (%s).", command.Command, s)
+		cmd, err := ProcessCommand(nil, command.Command)
 		if err != nil {
 			return err
 		}
@@ -345,24 +349,27 @@ func (t *Tracker) ExecCheck(args []string) error {
 			return fmt.Errorf("%v: %s", err, string(bytes))
 		}
 		return nil
-	}, t.config.Checks.RetryConfig)
+	}, command.RetryConfig)
 	return err
 }
 
-func (t *Tracker) ExecHook(rule *Rule, args []string) error {
-	if len(args) == 0 {
+func (t *Tracker) ExecHook(rule *Rule, command *Command) error {
+	if command == nil || len(command.Command) == 0 {
 		return nil
 	}
-	logrus.Debugf("Exec %v as PostTag command.", args)
-	cmd, err := ProcessCommand(rule, args)
-	if err != nil {
-		return err
-	}
-	bytes, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%v: %s", err, string(bytes))
-	}
-	return nil
+	err := Retry(func(s *Stats) error {
+		logrus.Debugf("Exec %v as PostTag command (%s).", command.Command, s)
+		cmd, err := ProcessCommand(rule, command.Command)
+		if err != nil {
+			return err
+		}
+		bytes, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("%v: %s", err, string(bytes))
+		}
+		return nil
+	}, command.RetryConfig)
+	return err
 }
 
 func gotmpl(templ string, data interface{}) (string, error) {

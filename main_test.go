@@ -394,30 +394,42 @@ func TestPostTagHooks(t *testing.T) {
 		Tag:  "latest",
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostCreateTagCommand: []string{},
+		PostCreateTag: nil,
 	}
-	err := tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err := tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTag)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostCreateTagCommand: []string{"whoami"},
+		PostCreateTag: &Command{
+			Command: []string{"whoami"},
+		},
 	}
-	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTag)
 	if err != nil {
 		t.Errorf("Must be nil, but got %v", err)
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostCreateTagCommand: []string{"{{.FOOBAR}}"},
+		PostCreateTag: &Command{
+			RetryConfig: &RetryConfig{
+				Maximum: 1,
+			},
+			Command: []string{"{{.FOOBAR}}"},
+		},
 	}
-	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTag)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
 	tracker.config.Hooks = HooksConfig{
-		PostCreateTagCommand: []string{"not-found-binary"},
+		PostCreateTag: &Command{
+			RetryConfig: &RetryConfig{
+				Maximum: 1,
+			},
+			Command: []string{"not-found-binary"},
+		},
 	}
-	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTagCommand)
+	err = tracker.ExecHook(rule, tracker.config.Hooks.PostCreateTag)
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
@@ -426,38 +438,42 @@ func TestPostTagHooks(t *testing.T) {
 func TestExecCheck(t *testing.T) {
 	tracker := Tracker{}
 	tracker.config.Checks = ChecksConfig{
-		RetryConfig:      nil,
-		PreFlightCommand: []string{},
+		PreFlight: nil,
 	}
-	err := tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	err := tracker.ExecCheck(tracker.config.Checks.PreFlight)
 	if err != nil {
 		t.Error(err)
 	}
 	tracker.config.Checks = ChecksConfig{
-		RetryConfig:      nil,
-		PreFlightCommand: []string{"whoami"},
-	}
-	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
-	if err != nil {
-		t.Error(err)
-	}
-	tracker.config.Checks = ChecksConfig{
-		RetryConfig: &RetryConfig{
-			Maximum: 1,
+		PreFlight: &Command{
+			Command: []string{"whoami"},
 		},
-		PreFlightCommand: []string{"not-found-binary"},
 	}
-	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	err = tracker.ExecCheck(tracker.config.Checks.PreFlight)
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		PreFlight: &Command{
+			RetryConfig: &RetryConfig{
+				Maximum: 1,
+			},
+			Command: []string{"not-found-binary"},
+		},
+	}
+	err = tracker.ExecCheck(tracker.config.Checks.PreFlight)
 	if err == nil {
 		t.Errorf("Must be an error, but got nil")
 	}
 	tracker.config.Checks = ChecksConfig{
-		RetryConfig: &RetryConfig{
-			Maximum: 1,
+		PreFlight: &Command{
+			RetryConfig: &RetryConfig{
+				Maximum: 1,
+			},
+			Command: []string{"{{.FOOBAR}}"},
 		},
-		PreFlightCommand: []string{"{{.FOOBAR}}"},
 	}
-	err = tracker.ExecCheck(tracker.config.Checks.PreFlightCommand)
+	err = tracker.ExecCheck(tracker.config.Checks.PreFlight)
 	if err == nil {
 		t.Errorf("Must be an error, but got nil")
 	}

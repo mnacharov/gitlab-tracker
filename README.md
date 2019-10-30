@@ -10,22 +10,25 @@ Separate your releases and specification changes or something else.
 ```yaml
 ---
 checks:
-  preFlightCommand:
-    - argocd
-    - cluster
-    - list
+  preFlight:
+    command:
+      - argocd
+      - cluster
+      - list
 hooks:
-  postCreateTagCommand:
-    - argocd
-    - app
-    - set
-    - "{{.Tag}}"
-    - "--revision={{.TagWithSuffix}}"
-  postUpdateTagCommand:
-    - argocd
-    - app
-    - sync
-    - "{{.Tag}}"
+  postCreateTag:
+    command:
+      - argocd
+      - app
+      - set
+      - "{{.Tag}}"
+      - "--revision={{.TagWithSuffix}}"
+  postUpdateTag:
+    command:
+      - argocd
+      - app
+      - sync
+      - "{{.Tag}}"
 rules:
   foobar:
     path: application/production/**

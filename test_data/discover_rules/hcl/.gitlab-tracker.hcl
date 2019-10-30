@@ -1,9 +1,9 @@
-checks {
+checks "pre_flight" {
     retry {
         maximum = 10
         interval_seconds = 2
     }
-    pre_flight_command = [
+    command = [
         "argocd",
         "cluster",
         "list"
