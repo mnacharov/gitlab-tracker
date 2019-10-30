@@ -441,12 +441,32 @@ func TestPostTagHooks(t *testing.T) {
 	}
 }
 
-func TestExecCheck(t *testing.T) {
+func TestExecCheck_PreFlight(t *testing.T) {
 	tracker := Tracker{}
 	tracker.config.Checks = ChecksConfig{
 		PreFlight: nil,
 	}
-	err := tracker.ExecCommandMap("PreFlight", tracker.config.Checks.PreFlight, nil)
+	err := tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		PreFlight: map[string]*Command{
+			"foobar": nil,
+		},
+	}
+	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		PreFlight: map[string]*Command{
+			"foobar": {
+				Command: []string{},
+			},
+		},
+	}
+	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -457,7 +477,11 @@ func TestExecCheck(t *testing.T) {
 			},
 		},
 	}
-	err = tracker.ExecCommandMap("PreFlight", tracker.config.Checks.PreFlight, nil)
+	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	err = tracker.RunChecksPreFlight()
 	if err != nil {
 		t.Error(err)
 	}
@@ -471,7 +495,7 @@ func TestExecCheck(t *testing.T) {
 			},
 		},
 	}
-	err = tracker.ExecCommandMap("PreFlight", tracker.config.Checks.PreFlight, nil)
+	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
 	if err == nil {
 		t.Errorf("Must be an error, but got nil")
 	}
@@ -485,7 +509,61 @@ func TestExecCheck(t *testing.T) {
 			},
 		},
 	}
-	err = tracker.ExecCommandMap("PreFlight", tracker.config.Checks.PreFlight, nil)
+	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
+	if err == nil {
+		t.Errorf("Must be an error, but got nil")
+	}
+}
+
+func TestExecCheck_PostFlight(t *testing.T) {
+	tracker := Tracker{}
+	tracker.config.Checks = ChecksConfig{
+		PostFlight: nil,
+	}
+	err := tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		PostFlight: map[string]*Command{
+			"foobar": {
+				Command: []string{"whoami"},
+			},
+		},
+	}
+	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	err = tracker.RunChecksPostFlight()
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.config.Checks = ChecksConfig{
+		PostFlight: map[string]*Command{
+			"foobar": {
+				RetryConfig: &RetryConfig{
+					Maximum: 1,
+				},
+				Command: []string{"not-found-binary"},
+			},
+		},
+	}
+	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
+	if err == nil {
+		t.Errorf("Must be an error, but got nil")
+	}
+	tracker.config.Checks = ChecksConfig{
+		PostFlight: map[string]*Command{
+			"foobar": {
+				RetryConfig: &RetryConfig{
+					Maximum: 1,
+				},
+				Command: []string{"{{.FOOBAR}}"},
+			},
+		},
+	}
+	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
 	if err == nil {
 		t.Errorf("Must be an error, but got nil")
 	}
