@@ -97,6 +97,10 @@ func TestLoadRules_Basic(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	err = tracker.LoadRules("test_data/valid.hcl")
+	if err != nil {
+		t.Error(err)
+	}
 	err = tracker.LoadRules("test_data/invalid.yaml")
 	if err == nil {
 		t.Error("Must be an error, but got nil")
