@@ -26,6 +26,30 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:af105c7c5dc0b4ae41991f122cae860b9600f7d226072c2a83127048c991660c"
+  name = "github.com/hashicorp/go-cleanhttp"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "eda1e5db218aad1db63ca4642c8906b26bcf2744"
+  version = "v0.5.1"
+
+[[projects]]
+  digest = "1:cf6b61e1b4c26b0c7526cee4a0cee6d8302b17798af4b2a56a90eedac0aef11a"
+  name = "github.com/hashicorp/go-hclog"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5ccdce08c75b6c7b37af61159f13f6a4f5e2e928"
+  version = "v0.9.2"
+
+[[projects]]
+  digest = "1:c56f955f851cd25996e8b6cc996cb168756802e5aa19ec0981104f2a98a46bdb"
+  name = "github.com/hashicorp/go-retryablehttp"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0cb7eb3851dd713f70a95911bfa978f2edeafb3d"
+  version = "v0.6.3"
+
+[[projects]]
   digest = "1:12eda7951867e5232799f468deb54ffb0587dbd6ab10aeac367feab3a1d8a041"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -125,6 +149,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/cloudfoundry/cli/util/glob",
+    "github.com/hashicorp/go-retryablehttp",
     "github.com/hashicorp/hcl",
     "github.com/sirupsen/logrus",
     "github.com/xanzy/go-gitlab",

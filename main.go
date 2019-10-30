@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -34,13 +33,8 @@ const (
 
 var (
 	httpCli = &http.Client{
-		Timeout: time.Second * 10,
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout: 5 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 5 * time.Second,
-		},
+		Timeout:   time.Second * 10,
+		Transport: RetryTransport(),
 	}
 	forceFlag         = flag.Bool("force", true, "Force recreate tags.")
 	logLevelFlag      = flag.String("log-level", "INFO", "Level of logging.")
@@ -480,6 +474,7 @@ func NewTracker() (*Tracker, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cli := gitlab.NewClient(httpCli, t.gitLabToken)
 	err = cli.SetBaseURL(t.gitLabURL)
 	if err != nil {
