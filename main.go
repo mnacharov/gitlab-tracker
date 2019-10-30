@@ -508,9 +508,6 @@ func (t *Tracker) LoadEnvironment() error {
 }
 
 func (t *Tracker) templateRulesWithMatrixFromDir(rule *Rule) error {
-	if len(t.config.MatrixFromDir) == 0 {
-		return nil
-	}
 	fi, err := ioutil.ReadDir(t.config.MatrixFromDir)
 	if err != nil {
 		return err
@@ -533,9 +530,6 @@ func (t *Tracker) templateRulesWithMatrixFromDir(rule *Rule) error {
 }
 
 func (t *Tracker) templateRulesWithMatrixRaw(rule *Rule) error {
-	if len(t.config.Matrix) == 0 {
-		return nil
-	}
 	parsedRules := map[string]*Rule{}
 	for _, item := range t.config.Matrix {
 		ref := rule.Clone()
@@ -548,18 +542,8 @@ func (t *Tracker) templateRulesWithMatrixRaw(rule *Rule) error {
 	return nil
 }
 
-func (t *Tracker) ContainsMatrixSettings() bool {
-	if len(t.config.Matrix) > 0 {
-		return true
-	}
-	if len(t.config.MatrixFromDir) > 0 {
-		return true
-	}
-	return false
-}
-
 func (t *Tracker) TemplateRulesWithMatrix() error {
-	if !t.ContainsMatrixSettings() {
+	if len(t.config.Matrix) == 0 && len(t.config.MatrixFromDir) == 0 {
 		return nil
 	}
 	if len(t.config.Rules) > 1 || len(t.config.Rules) == 0 {
@@ -569,13 +553,10 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 	if !ok {
 		return errors.New("Matrix can be used only with rule that named as `matrix`")
 	}
-	if err := t.templateRulesWithMatrixRaw(matrixRule); err != nil {
-		return err
+	if len(t.config.Matrix) > 0 {
+		return t.templateRulesWithMatrixRaw(matrixRule)
 	}
-	if err := t.templateRulesWithMatrixFromDir(matrixRule); err != nil {
-		return err
-	}
-	return nil
+	return t.templateRulesWithMatrixFromDir(matrixRule)
 }
 
 func (t *Tracker) DiscoverConfigFile(dir string) (string, error) {

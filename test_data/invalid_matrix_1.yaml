@@ -1,0 +1,7 @@
+---
+rules:
+  foo:
+    path: prepare-environment.sh
+    label: latest
+matrix:
+  - foobar

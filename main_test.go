@@ -105,6 +105,10 @@ func TestLoadRules_Basic(t *testing.T) {
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
+	err = tracker.LoadRules("test_data/invalid.hcl")
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
 	err = tracker.LoadRules("test_data/invalid_tag.yaml")
 	if err == nil {
 		t.Error("Must be an error, but got nil")
@@ -113,7 +117,12 @@ func TestLoadRules_Basic(t *testing.T) {
 
 func TestLoadRules_Matrix(t *testing.T) {
 	tracker := &Tracker{}
-	err := tracker.LoadRules("test_data/invalid_matrix.yaml")
+	err := tracker.LoadRules("test_data/invalid_matrix_1.yaml")
+	if err == nil {
+		t.Fatal("Must be an error, but got nil")
+	}
+	tracker = &Tracker{}
+	err = tracker.LoadRules("test_data/invalid_matrix_2.yaml")
 	if err == nil {
 		t.Fatal("Must be an error, but got nil")
 	}
