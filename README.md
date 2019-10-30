@@ -34,5 +34,5 @@ rules:
       tagSuffixFileRef:
         file: application/production/application.Deployment.yaml
         regexp: eu.gcr.io/org/proj/application:(.*)$
-        # regexp_group: 1
+        # regexpGroup: 1
 ```
