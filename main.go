@@ -312,19 +312,20 @@ func (t *Tracker) UpdateTags(force bool) error {
 }
 
 func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
-	for i, templ := range args {
+	argsExec := []string{}
+	for _, templ := range args {
 		arg, err := gotmpl(templ, rule)
 		if err != nil {
 			return nil, err
 		}
-		args[i] = os.ExpandEnv(arg)
+		argsExec = append(argsExec, os.ExpandEnv(arg))
 	}
-	if len(args) > 1 {
-		c := exec.Command(args[0], args[1:]...)
+	if len(argsExec) > 1 {
+		c := exec.Command(argsExec[0], argsExec[1:]...)
 		c.Env = os.Environ()
 		return c, nil
 	}
-	c := exec.Command(args[0])
+	c := exec.Command(argsExec[0])
 	c.Env = os.Environ()
 	return c, nil
 }
