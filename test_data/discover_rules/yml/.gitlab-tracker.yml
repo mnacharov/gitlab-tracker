@@ -1,13 +1,14 @@
 ---
 checks:
   preFlight:
-    retry:
-      maximum: 10
-      interval: 2s
-    command:
-      - argocd
-      - cluster
-      - list
+    argocd:
+      retry:
+        maximum: 10
+        interval: 2s
+      command:
+        - argocd
+        - cluster
+        - list
 rules:
   foo:
     path: prepare-environment1.sh

@@ -11,24 +11,27 @@ Separate your releases and specification changes or something else.
 ---
 checks:
   preFlight:
-    command:
-      - argocd
-      - cluster
-      - list
+    argocd:
+      command:
+        - argocd
+        - cluster
+        - list
 hooks:
   postCreateTag:
-    command:
-      - argocd
-      - app
-      - set
-      - "{{.Tag}}"
-      - "--revision={{.TagWithSuffix}}"
+    set:
+      command:
+        - argocd
+        - app
+        - set
+        - "{{.Tag}}"
+        - "--revision={{.TagWithSuffix}}"
   postUpdateTag:
-    command:
-      - argocd
-      - app
-      - sync
-      - "{{.Tag}}"
+    sync:
+      command:
+        - argocd
+        - app
+        - sync
+        - "{{.Tag}}"
 rules:
   foobar:
     path: application/production/**

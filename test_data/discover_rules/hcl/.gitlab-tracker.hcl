@@ -1,4 +1,4 @@
-checks "pre_flight" {
+checks "pre_flight" "argocd" {
     retry {
         maximum = 10
         interval_seconds = 2

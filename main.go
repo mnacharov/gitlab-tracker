@@ -63,12 +63,12 @@ type Config struct {
 }
 
 type ChecksConfig struct {
-	PreFlight *Command `yaml:"preFlight" hcl:"pre_flight"`
+	PreFlight map[string]*Command `yaml:"preFlight" hcl:"pre_flight"`
 }
 
 type HooksConfig struct {
-	PostCreateTag *Command `yaml:"postCreateTag" hcl:"post_create_tag"`
-	PostUpdateTag *Command `yaml:"postUpdateTag" hcl:"post_update_tag"`
+	PostCreateTag map[string]*Command `yaml:"postCreateTag" hcl:"post_create_tag"`
+	PostUpdateTag map[string]*Command `yaml:"postUpdateTag" hcl:"post_update_tag"`
 }
 
 type Command struct {
@@ -249,7 +249,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 		return err
 	}
 	if !exists {
-		err = t.ExecHook(rule, t.config.Hooks.PostCreateTag)
+		err = t.ExecCommandMap("PostCreateTag", t.config.Hooks.PostCreateTag, rule)
 		if err != nil {
 			return err
 		}
@@ -273,7 +273,7 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	if err != nil {
 		return err
 	}
-	err = t.ExecHook(rule, t.config.Hooks.PostUpdateTag)
+	err = t.ExecCommandMap("PostUpdateTag", t.config.Hooks.PostUpdateTag, rule)
 	if err != nil {
 		return err
 	}
@@ -281,9 +281,9 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 }
 
 func (t *Tracker) Run(force bool) error {
-	err := t.ExecCheck(t.config.Checks.PreFlight)
+	err := t.ExecCommandMap("PreFlight", t.config.Checks.PreFlight, nil)
 	if err != nil {
-		return fmt.Errorf("Pre flight check: failed. Error: %v", err)
+		return fmt.Errorf("Pre flight check: failed. %v", err)
 	}
 	logrus.Info("Pre flight check: passed")
 
@@ -328,42 +328,28 @@ func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	return c, nil
 }
 
-func (t *Tracker) ExecCheck(command *Command) error {
-	if command == nil || len(command.Command) == 0 {
-		return nil
+func (t *Tracker) ExecCommandMap(commandType string, commands map[string]*Command, rule *Rule) error {
+	for name, command := range commands {
+		if command == nil || len(command.Command) == 0 {
+			continue
+		}
+		err := Retry(func(s *Stats) error {
+			logrus.Debugf("Exec %v as %s command (%s).", command.Command, commandType, s)
+			cmd, err := ProcessCommand(rule, command.Command)
+			if err != nil {
+				return err
+			}
+			bytes, err := cmd.CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("%v: %s", err, string(bytes))
+			}
+			return nil
+		}, command.RetryConfig)
+		if err != nil {
+			return fmt.Errorf("%s %s: %v", commandType, name, err)
+		}
 	}
-	err := Retry(func(s *Stats) error {
-		logrus.Debugf("Exec %v as Check command (%s).", command.Command, s)
-		cmd, err := ProcessCommand(nil, command.Command)
-		if err != nil {
-			return err
-		}
-		bytes, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("%v: %s", err, string(bytes))
-		}
-		return nil
-	}, command.RetryConfig)
-	return err
-}
-
-func (t *Tracker) ExecHook(rule *Rule, command *Command) error {
-	if command == nil || len(command.Command) == 0 {
-		return nil
-	}
-	err := Retry(func(s *Stats) error {
-		logrus.Debugf("Exec %v as PostTag command (%s).", command.Command, s)
-		cmd, err := ProcessCommand(rule, command.Command)
-		if err != nil {
-			return err
-		}
-		bytes, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("%v: %s", err, string(bytes))
-		}
-		return nil
-	}, command.RetryConfig)
-	return err
+	return nil
 }
 
 func gotmpl(templ string, data interface{}) (string, error) {
