@@ -7,38 +7,44 @@ Separate your releases and specification changes or something else.
 
 ## Configuration
 
-```yaml
----
-checks:
-  preFlight:
-    argocd:
-      command:
-        - argocd
-        - cluster
-        - list
-hooks:
-  postCreateTag:
-    set:
-      command:
-        - argocd
-        - app
-        - set
-        - "{{.Tag}}"
-        - "--revision={{.TagWithSuffix}}"
-  postUpdateTag:
-    sync:
-      command:
-        - argocd
-        - app
-        - sync
-        - "{{.Tag}}"
-rules:
-  foobar:
-    path: application/production/**
-      tag: application
-      tagSuffixSeparator: "@"
-      tagSuffixFileRef:
-        file: application/production/application.Deployment.yaml
-        regexp: eu.gcr.io/org/proj/application:(.*)$
-        # regexpGroup: 1
+```hcl
+checks "pre_flight" "argocd_check" {
+  command = [
+    "argocd",
+    "cluster",
+    "list"
+  ]
+}
+
+hooks "post_create_tag" "argocd_set_new_revision" {
+  command = [
+    "argocd",
+    "app",
+    "set",
+    "--revision={{.TagWithSuffix}}",
+    "{{.Tag}}-production"
+  ]
+}
+
+hooks "post_update_tag" "argocd_sync_state" {
+  command = [
+    "argocd",
+    "app",
+    "sync",
+    "--async",
+    "{{.Tag}}-production"
+  ]
+}
+
+matrix_from_dir = "services"
+
+rules "matrix" {
+  path = "services/{{.Item}}/resources/**"
+  tag = "{{.Item}}"
+  tag_suffix_file_ref {
+    file = "services/{{.Item}}/resources/{{.Item}}.Deployment.yaml"
+    regexp = "eu.gcr.io/utilities-212509/[\\-\\w]+/[\\-\\w]+[:@](.*)$"
+    regexp_group = 1
+  }
+}
 ```
