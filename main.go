@@ -646,8 +646,7 @@ func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
 
 func (t *Tracker) DiffStat(head, sha string, files []string) (string, error) {
 	logrus.Debugf("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
-	args := []string{"diff", "--stat", head, sha}
-	args = append(args, files...)
+	args := append([]string{"diff", "--stat", head, sha, "--"}, files...)
 	output, err := t.gitCommand(args...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("%v: %s", err, string(output))
