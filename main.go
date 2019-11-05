@@ -646,6 +646,9 @@ func (t *Tracker) Diff(head, sha string) (changes []string, err error) {
 
 func (t *Tracker) DiffStat(head, sha string, files []string) (string, error) {
 	logrus.Debugf("Diff stat head with %s for %s.", sha, strings.Join(files, ", "))
+	// fatal: ambiguous argument 'README.md2': unknown revision or path not in the working tree.
+	// Use '--' to separate paths from revisions, like this:
+	// 'git <command> [<revision>...] -- [<file>...]'
 	args := append([]string{"diff", "--stat", head, sha, "--"}, files...)
 	output, err := t.gitCommand(args...).CombinedOutput()
 	if err != nil {
