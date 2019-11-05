@@ -23,6 +23,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type CommandType string
+
 const (
 	tagMessage         = "Auto-generated. Do not Remove."
 	errTagNotFound     = "Tag Not Found"
@@ -30,10 +32,10 @@ const (
 
 	defaultTagSuffixSeparator = "@"
 
-	PostCreateTagCommandType = "PostCreateTag"
-	PostUpdateTagCommandType = "PostUpdateTag"
-	PreFlightCommandType     = "PreFlight"
-	PostFlightCommandType    = "PostFlight"
+	PostCreateTagCommandType CommandType = "PostCreateTag"
+	PostUpdateTagCommandType CommandType = "PostUpdateTag"
+	PreFlightCommandType     CommandType = "PreFlight"
+	PostFlightCommandType    CommandType = "PostFlight"
 )
 
 var (
@@ -358,7 +360,7 @@ func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	return c, nil
 }
 
-func (t *Tracker) ExecCommandMap(commandType string, commands map[string]*Command, rule *Rule) error {
+func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*Command, rule *Rule) error {
 	for name, command := range commands {
 		if command == nil || len(command.Command) == 0 {
 			continue
