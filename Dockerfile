@@ -1,4 +1,4 @@
-FROM golang:1.12.6-alpine as builder
+FROM golang:1.13-alpine as builder
 WORKDIR /go/src/github.com/leominov/gitlab-tracker
 COPY . .
 RUN go build ./
@@ -10,7 +10,7 @@ RUN apk --no-cache add \
         curl \
         git \
     && curl -sfL \
-        https://github.com/argoproj/argo-cd/releases/download/v1.2.1/argocd-linux-amd64 \
+        https://github.com/argoproj/argo-cd/releases/download/v1.3.0/argocd-linux-amd64 \
         -o /usr/local/bin/argocd \
     && chmod +x /usr/local/bin/argocd \
     && apk del curl
