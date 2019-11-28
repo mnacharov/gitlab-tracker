@@ -53,7 +53,7 @@ func Retry(callback func(*Stats) error, config *RetryConfig) error {
 		}
 	}
 
-	if config.Maximum == 0 && config.Forever == false {
+	if config.Maximum == 0 && !config.Forever {
 		config.Maximum = 10
 	}
 
