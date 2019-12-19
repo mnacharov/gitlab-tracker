@@ -542,9 +542,12 @@ func (t *Tracker) templateRulesWithMatrixFromDir(rule *Rule) error {
 			continue
 		}
 		ref := rule.Clone()
-		ref.ParseAsTemplate(map[string]string{
+		err := ref.ParseAsTemplate(map[string]string{
 			"Item": path.Base(item.Name()),
 		})
+		if err != nil {
+			return err
+		}
 		parsedRules[fmt.Sprintf("matrix-%d", i)] = ref
 		i++
 	}
@@ -556,9 +559,12 @@ func (t *Tracker) templateRulesWithMatrixRaw(rule *Rule) error {
 	parsedRules := map[string]*Rule{}
 	for _, item := range t.config.Matrix {
 		ref := rule.Clone()
-		ref.ParseAsTemplate(map[string]string{
+		err := ref.ParseAsTemplate(map[string]string{
 			"Item": item,
 		})
+		if err != nil {
+			return err
+		}
 		parsedRules[item] = ref
 	}
 	t.config.Rules = parsedRules
