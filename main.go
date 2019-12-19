@@ -294,7 +294,7 @@ func (t *Tracker) RunChecksPreFlight() error {
 	}
 	err := t.ExecCommandMap(PreFlightCommandType, t.config.Checks.PreFlight, nil)
 	if err != nil {
-		return fmt.Errorf("Pre flight checks: failed. %v", err)
+		return fmt.Errorf("pre flight checks: failed. %v", err)
 	}
 	logrus.Info("Pre flight checks: passed")
 	return nil
@@ -306,7 +306,7 @@ func (t *Tracker) RunChecksPostFlight() error {
 	}
 	err := t.ExecCommandMap(PostFlightCommandType, t.config.Checks.PostFlight, nil)
 	if err != nil {
-		return fmt.Errorf("Post flight checks: failed. %v", err)
+		return fmt.Errorf("post flight checks: failed. %v", err)
 	}
 	logrus.Info("Post flight checks: passed")
 	return nil
@@ -336,13 +336,13 @@ func (t *Tracker) UpdateTags(force bool) error {
 		}
 	}
 	if failed {
-		return errors.New("Failed")
+		return errors.New("failed")
 	}
 	return nil
 }
 
 func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
-	argsExec := []string{}
+	var argsExec []string
 	for _, templ := range args {
 		arg, err := gotmpl(templ, rule)
 		if err != nil {
@@ -454,7 +454,7 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 }
 
 func (r *Rule) IsChangesMatch(changes []string) ([]string, bool) {
-	matches := []string{}
+	var matches []string
 	gl := glob.MustCompileGlob(r.Path)
 	for _, change := range changes {
 		if gl.Match(change) {
@@ -567,11 +567,11 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 		return nil
 	}
 	if len(t.config.Rules) > 1 || len(t.config.Rules) == 0 {
-		return errors.New("Matrix can be used only with single rule")
+		return errors.New("matrix can be used only with single rule")
 	}
 	matrixRule, ok := t.config.Rules["matrix"]
 	if !ok {
-		return errors.New("Matrix can be used only with rule that named as `matrix`")
+		return errors.New("matrix can be used only with rule that named as `matrix`")
 	}
 	if len(t.config.Matrix) > 0 {
 		return t.templateRulesWithMatrixRaw(matrixRule)
@@ -588,7 +588,7 @@ func (t *Tracker) DiscoverConfigFile(dir string) (string, error) {
 	if _, err := os.Stat(filename); !os.IsNotExist(err) {
 		return filename, nil
 	}
-	return "", errors.New("Configuration file not found")
+	return "", errors.New("configuration file not found")
 }
 
 func (t *Tracker) LoadRules(filename string) error {
@@ -619,7 +619,7 @@ func (t *Tracker) LoadRules(filename string) error {
 		}
 		re, err := regexp.Compile(rule.TagSuffixFileRef.RegExpRaw)
 		if err != nil {
-			return fmt.Errorf("Failed to parse '%s': %v", rule.TagSuffixFileRef.RegExpRaw, err)
+			return fmt.Errorf("failed to parse '%s': %v", rule.TagSuffixFileRef.RegExpRaw, err)
 		}
 		rule.TagSuffixFileRef.RegExp = re
 	}

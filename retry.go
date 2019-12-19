@@ -66,7 +66,7 @@ func Retry(callback func(*Stats) error, config *RetryConfig) error {
 	}
 
 	if config.Forever && config.Interval == 0 {
-		return errors.New("You can't do a forever retry with no interval")
+		return errors.New("you can't do a forever retry with no interval")
 	}
 
 	stats := &Stats{Attempt: 1, Config: config}
