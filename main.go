@@ -57,7 +57,7 @@ type Tracker struct {
 	beforeRef   string
 	ref         string
 	proj        string
-	gitLab      *gitlab.Client
+	gitLab      gitlabClient
 	config      Config
 }
 
@@ -350,6 +350,9 @@ func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 		}
 		argsExec = append(argsExec, os.ExpandEnv(arg))
 	}
+	if argsExec == nil {
+		return nil, errors.New("empty command")
+	}
 	if len(argsExec) > 1 {
 		c := exec.Command(argsExec[0], argsExec[1:]...)
 		c.Env = os.Environ()
@@ -371,9 +374,9 @@ func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*C
 			if err != nil {
 				return err
 			}
-			bytes, err := cmd.CombinedOutput()
+			b, err := cmd.CombinedOutput()
 			if err != nil {
-				return fmt.Errorf("%v: %s", err, string(bytes))
+				return fmt.Errorf("%v: %s", err, string(b))
 			}
 			return nil
 		}, command.RetryConfig)
@@ -397,7 +400,7 @@ func gotmpl(templ string, data interface{}) (string, error) {
 }
 
 func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error) {
-	tag, _, err := t.gitLab.Tags.GetTag(t.proj, tagName, nil)
+	tag, _, err := t.gitLab.GetTag(t.proj, tagName, nil)
 	if err != nil && !strings.Contains(err.Error(), errTagNotFound) {
 		return false, nil, err
 	}
@@ -419,13 +422,13 @@ func (t Tracker) CreateTagForRef(tagName, ref string) (*gitlab.Tag, error) {
 		Ref:     gitlab.String(ref),
 		Message: gitlab.String(tagMessage),
 	}
-	tag, _, err := t.gitLab.Tags.CreateTag(t.proj, opts, nil)
+	tag, _, err := t.gitLab.CreateTag(t.proj, opts, nil)
 	return tag, err
 }
 
 func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error {
 	if force {
-		_, err := t.gitLab.Tags.DeleteTag(t.proj, tag.Name, nil)
+		_, err := t.gitLab.DeleteTag(t.proj, tag.Name, nil)
 		if err != nil && !strings.Contains(err.Error(), errTagNotFound) {
 			return err
 		}
@@ -433,6 +436,9 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 	_, err := t.CreateTagForRef(tag.Name, t.ref)
 	if err != nil {
 		return err
+	}
+	if changes == nil {
+		return nil
 	}
 	stat, err := t.DiffStat(tag.Commit.ID, t.ref, changes)
 	if err != nil {
@@ -450,7 +456,7 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 		TagName:     gitlab.String(tag.Name),
 		Description: gitlab.String(message),
 	}
-	_, _, err = t.gitLab.Releases.CreateRelease(t.proj, opts)
+	_, _, err = t.gitLab.CreateRelease(t.proj, opts)
 	if err != nil {
 		logrus.Warningf("Failed to create release: %v", err)
 	}
@@ -502,7 +508,7 @@ func NewTracker() (*Tracker, error) {
 	if err != nil {
 		return nil, err
 	}
-	t.gitLab = cli
+	t.gitLab = gitlabRealClient(*cli)
 	return t, nil
 }
 

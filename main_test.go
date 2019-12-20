@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"regexp"
 	"testing"
+
+	"github.com/xanzy/go-gitlab"
 )
 
 func TestIsChangesMatch(t *testing.T) {
@@ -580,6 +582,63 @@ func TestDiscoverConfigFile(t *testing.T) {
 		t.Error(err)
 	}
 	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/hcl")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestCreateTagIfNotExists(t *testing.T) {
+	tracker := &Tracker{
+		gitLab: NewFakeClient(),
+		proj:   "ABCD",
+		ref:    "000",
+	}
+	_, _, err := tracker.CreateTagIfNotExists("foobar")
+	if err != nil {
+		t.Error(err)
+	}
+	tracker.ref = "111"
+	_, _, err = tracker.CreateTagIfNotExists("foobar")
+	if err != nil {
+		t.Error(err)
+	}
+	tag, _, err := tracker.gitLab.GetTag(tracker.proj, "foobar")
+	if err != nil {
+		t.Error(err)
+	}
+	if tag.Commit.ID == tracker.ref {
+		t.Errorf("Must be %q, but got %q", "000", tag.Commit.ID)
+	}
+}
+
+func TestUpdateTag(t *testing.T) {
+	tracker := &Tracker{
+		gitLab: NewFakeClient(),
+		git:    "git",
+		proj:   "ABCD",
+		ref:    "a7c947751dba7fc8ec1877baa33834c09d2a5df3",
+	}
+	err := tracker.UpdateTag(&gitlab.Tag{
+		Commit: &gitlab.Commit{
+			ID: "4599ce4d09ef53a832d673fa471ecea52b69501d",
+		},
+		Name:    "foobar",
+		Message: "ABC",
+	}, false, []string{"main.go"})
+	if err != nil {
+		t.Error(err)
+	}
+	err = tracker.UpdateTag(&gitlab.Tag{
+		Commit: &gitlab.Commit{
+			ID: "000",
+		},
+		Name:    "foobar",
+		Message: "DFG",
+	}, true, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	_, _, err = tracker.gitLab.GetTag("ABCD", "foobar")
 	if err != nil {
 		t.Error(err)
 	}
