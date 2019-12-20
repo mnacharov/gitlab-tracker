@@ -445,13 +445,14 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 		"<details><summary>Details</summary><pre><code>%s</code></pre></details>",
 		stat,
 	)
-	opts := &gitlab.CreateReleaseNoteOptions{
+	opts := &gitlab.CreateReleaseOptions{
+		Name:        gitlab.String(tag.Name),
+		TagName:     gitlab.String(tag.Name),
 		Description: gitlab.String(message),
 	}
-	// It's okay if it fails
-	_, _, err = t.gitLab.Tags.CreateReleaseNote(t.proj, tag.Name, opts, nil)
+	_, _, err = t.gitLab.Releases.CreateRelease(t.proj, opts)
 	if err != nil {
-		logrus.Warningf("Failed to create release notes: %v", err)
+		logrus.Warningf("Failed to create release: %v", err)
 	}
 	return nil
 }
