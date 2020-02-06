@@ -26,9 +26,10 @@ import (
 type CommandType string
 
 const (
-	tagMessage         = "Auto-generated. Do not Remove."
-	errTagNotFound     = "Tag Not Found"
-	configFilenameBase = ".gitlab-tracker"
+	tagMessage          = "Auto-generated. Do not Remove."
+	errTagNotFound      = "Tag Not Found"
+	configFilenameBase  = ".gitlab-tracker"
+	descriptionTemplate = "<details><summary>Details</summary><pre><code>%s</code></pre></details>"
 
 	defaultTagSuffixSeparator = "@"
 
@@ -447,10 +448,7 @@ func (t *Tracker) UpdateTag(tag *gitlab.Tag, force bool, changes []string) error
 	if len(stat) == 0 {
 		return nil
 	}
-	message := fmt.Sprintf(
-		"<details><summary>Details</summary><pre><code>%s</code></pre></details>",
-		stat,
-	)
+	message := fmt.Sprintf(descriptionTemplate, stat)
 	opts := &gitlab.CreateReleaseOptions{
 		Name:        gitlab.String(tag.Name),
 		TagName:     gitlab.String(tag.Name),
