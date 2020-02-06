@@ -81,8 +81,9 @@ type HooksConfig struct {
 }
 
 type Command struct {
-	RetryConfig *RetryConfig `yaml:"retry" hcl:"retry"`
-	Command     []string     `yaml:"command" hcl:"command"`
+	RetryConfig  *RetryConfig `yaml:"retry" hcl:"retry"`
+	AllowFailure bool         `yaml:"allowFailure" hcl:"allow_failure"`
+	Command      []string     `yaml:"command" hcl:"command"`
 }
 
 type Rule struct {
@@ -381,7 +382,7 @@ func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*C
 			}
 			return nil
 		}, command.RetryConfig)
-		if err != nil {
+		if !command.AllowFailure && err != nil {
 			return fmt.Errorf("%s %s: %v", commandType, name, err)
 		}
 	}
