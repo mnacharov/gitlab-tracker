@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/xanzy/go-gitlab"
 )
@@ -544,6 +545,7 @@ func TestExecCheck_PostFlight(t *testing.T) {
 	tracker.config.Checks = ChecksConfig{
 		PostFlight: map[string]*Command{
 			"foobar": {
+				InitialDelaySeconds: 2,
 				RetryConfig: &RetryConfig{
 					Maximum: 1,
 				},
@@ -551,9 +553,13 @@ func TestExecCheck_PostFlight(t *testing.T) {
 			},
 		},
 	}
+	st := time.Now()
 	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
 	if err == nil {
 		t.Errorf("Must be an error, but got nil")
+	}
+	if time.Since(st) < 2*time.Second {
+		t.Errorf("InitialDelaySeconds=2 doesn't work as expected")
 	}
 	tracker.config.Checks = ChecksConfig{
 		PostFlight: map[string]*Command{

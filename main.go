@@ -81,9 +81,10 @@ type HooksConfig struct {
 }
 
 type Command struct {
-	RetryConfig  *RetryConfig `yaml:"retry" hcl:"retry"`
-	AllowFailure bool         `yaml:"allowFailure" hcl:"allow_failure"`
-	Command      []string     `yaml:"command" hcl:"command"`
+	RetryConfig         *RetryConfig `yaml:"retry" hcl:"retry"`
+	InitialDelaySeconds int          `yaml:"initialDelaySeconds" hcl:"initial_delay_seconds"`
+	AllowFailure        bool         `yaml:"allowFailure" hcl:"allow_failure"`
+	Command             []string     `yaml:"command" hcl:"command"`
 }
 
 type Rule struct {
@@ -369,6 +370,9 @@ func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*C
 	for name, command := range commands {
 		if command == nil || len(command.Command) == 0 {
 			continue
+		}
+		if command.InitialDelaySeconds > 0 {
+			time.Sleep(time.Duration(command.InitialDelaySeconds) * time.Second)
 		}
 		err := Retry(func(s *Stats) error {
 			logrus.Debugf("Exec %v as %s command (%s).", command.Command, commandType, s)
