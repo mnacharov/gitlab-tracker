@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "preFlight": {
+      "argocd": {
+        "retry": {
+          "maximum": 10,
+          "interval": "2s"
+        },
+        "command": [
+          "argocd",
+          "cluster",
+          "list"
+        ]
+      }
+    }
+  },
+  "rules": {
+    "foo": {
+      "path": "prepare-environment1.sh",
+      "tag": "latest"
+    },
+    "bar": {
+      "path": "prepare-environment2.sh",
+      "tag": "latest",
+      "tagSuffixFileRef": {
+        "file": "filename",
+        "regexp": "re"
+      }
+    }
+  }
+}

@@ -566,6 +566,10 @@ func TestDiscoverConfigFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/json")
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestCreateTagIfNotExists(t *testing.T) {
