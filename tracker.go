@@ -144,10 +144,7 @@ func (r *Rule) ParseAsTemplate(data map[string]string) error {
 	if r.TagSuffixFileRef == nil {
 		return nil
 	}
-	if err := r.TagSuffixFileRef.parseTmpl(data); err != nil {
-		return err
-	}
-	return nil
+	return r.TagSuffixFileRef.parseTmpl(data)
 }
 
 func (r *Rule) Clone() *Rule {
@@ -178,10 +175,7 @@ func (r *Rule) parseTmpl(data map[string]string) error {
 		return err
 	}
 	r.TagSuffixSeparator, err = gotmpl(r.TagSuffixSeparator, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (t *TagSuffixFileRef) Clone() *TagSuffixFileRef {
@@ -199,10 +193,7 @@ func (t *TagSuffixFileRef) parseTmpl(data map[string]string) error {
 		return err
 	}
 	t.RegExpRaw, err = gotmpl(t.RegExpRaw, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
@@ -279,11 +270,7 @@ func (t *Tracker) processRule(rule *Rule, force bool) error {
 		return err
 	}
 	if !exists {
-		err = t.ExecCommandMap(PostCreateTagCommandType, t.config.Hooks.PostCreateTag, rule)
-		if err != nil {
-			return err
-		}
-		return nil
+		return t.ExecCommandMap(PostCreateTagCommandType, t.config.Hooks.PostCreateTag, rule)
 	}
 	destRef := rule.TagWithSuffix
 	if len(t.beforeRef) > 0 {
@@ -303,11 +290,7 @@ func (t *Tracker) processRule(rule *Rule, force bool) error {
 	if err != nil {
 		return err
 	}
-	err = t.ExecCommandMap(PostUpdateTagCommandType, t.config.Hooks.PostUpdateTag, rule)
-	if err != nil {
-		return err
-	}
-	return nil
+	return t.ExecCommandMap(PostUpdateTagCommandType, t.config.Hooks.PostUpdateTag, rule)
 }
 
 func (t *Tracker) RunChecksPreFlight() error {
@@ -342,10 +325,7 @@ func (t *Tracker) Run(force bool) error {
 	if err != nil {
 		return err
 	}
-	if err := t.RunChecksPostFlight(); err != nil {
-		return err
-	}
-	return nil
+	return t.RunChecksPostFlight()
 }
 
 func (t *Tracker) UpdateTags(force bool) error {
@@ -400,10 +380,7 @@ func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error
 	}
 	logrus.Infof("Create '%s' tag.", tagName)
 	tag, err = t.CreateTagForRef(tagName, t.ref)
-	if err != nil {
-		return false, nil, err
-	}
-	return false, tag, nil
+	return false, tag, err
 }
 
 func (t Tracker) CreateTagForRef(tagName, ref string) (*gitlab.Tag, error) {
@@ -459,10 +436,7 @@ func (r *Rule) IsChangesMatch(changes []string) ([]string, bool) {
 			matches = append(matches, change)
 		}
 	}
-	if len(matches) > 0 {
-		return matches, true
-	}
-	return matches, false
+	return matches, len(matches) > 0
 }
 
 func (t *Tracker) LoadEnvironment() error {
