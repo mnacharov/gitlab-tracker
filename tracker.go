@@ -12,7 +12,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/cloudfoundry/cli/util/glob"
@@ -101,6 +100,41 @@ type TagSuffixFileRef struct {
 	RegExpRaw string         `yaml:"regexp" hcl:"regexp"`
 	Group     int            `yaml:"regexpGroup" hcl:"regexp_group"`
 	RegExp    *regexp.Regexp `yaml:"-" hcl:"-"`
+}
+
+func NewTracker() (*Tracker, error) {
+	g, err := exec.LookPath("git")
+	if err != nil {
+		return nil, err
+	}
+	d, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	t := &Tracker{
+		git: g,
+		dir: d,
+	}
+	filename, err := t.DiscoverConfigFile(d)
+	if err != nil {
+		return nil, err
+	}
+	err = t.LoadRules(filename)
+	if err != nil {
+		return nil, err
+	}
+	err = t.LoadEnvironment()
+	if err != nil {
+		return nil, err
+	}
+
+	cli := gitlab.NewClient(httpCli, t.gitLabToken)
+	err = cli.SetBaseURL(t.gitLabURL)
+	if err != nil {
+		return nil, err
+	}
+	t.gitLab = gitlabRealClient(*cli)
+	return t, nil
 }
 
 func (r *Rule) ParseAsTemplate(data map[string]string) error {
@@ -329,28 +363,6 @@ func (t *Tracker) UpdateTags(force bool) error {
 	return nil
 }
 
-func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
-	var argsExec []string
-	for _, templ := range args {
-		arg, err := gotmpl(templ, rule)
-		if err != nil {
-			return nil, err
-		}
-		argsExec = append(argsExec, os.ExpandEnv(arg))
-	}
-	if argsExec == nil {
-		return nil, errors.New("empty command")
-	}
-	if len(argsExec) > 1 {
-		c := exec.Command(argsExec[0], argsExec[1:]...)
-		c.Env = os.Environ()
-		return c, nil
-	}
-	c := exec.Command(argsExec[0])
-	c.Env = os.Environ()
-	return c, nil
-}
-
 func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*Command, rule *Rule) error {
 	for name, command := range commands {
 		if command == nil || len(command.Command) == 0 {
@@ -376,18 +388,6 @@ func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*C
 		}
 	}
 	return nil
-}
-
-func gotmpl(templ string, data interface{}) (string, error) {
-	var templateEng *template.Template
-	buf := bytes.NewBufferString("")
-	templateEng = template.New("hook")
-	if messageTempl, err := templateEng.Parse(templ); err != nil {
-		return "", fmt.Errorf("failed to parse template: %v", err)
-	} else if err := messageTempl.Execute(buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %v", err)
-	}
-	return buf.String(), nil
 }
 
 func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error) {
@@ -463,41 +463,6 @@ func (r *Rule) IsChangesMatch(changes []string) ([]string, bool) {
 		return matches, true
 	}
 	return matches, false
-}
-
-func NewTracker() (*Tracker, error) {
-	g, err := exec.LookPath("git")
-	if err != nil {
-		return nil, err
-	}
-	d, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	t := &Tracker{
-		git: g,
-		dir: d,
-	}
-	filename, err := t.DiscoverConfigFile(d)
-	if err != nil {
-		return nil, err
-	}
-	err = t.LoadRules(filename)
-	if err != nil {
-		return nil, err
-	}
-	err = t.LoadEnvironment()
-	if err != nil {
-		return nil, err
-	}
-
-	cli := gitlab.NewClient(httpCli, t.gitLabToken)
-	err = cli.SetBaseURL(t.gitLabURL)
-	if err != nil {
-		return nil, err
-	}
-	t.gitLab = gitlabRealClient(*cli)
-	return t, nil
 }
 
 func (t *Tracker) LoadEnvironment() error {
