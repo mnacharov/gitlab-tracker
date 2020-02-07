@@ -74,10 +74,10 @@ type ChecksConfig struct {
 }
 
 type HooksConfig struct {
-	PreProcess    map[string]*Command `yaml:"preProcess" hcl:"pre_process json:"preProcess"`
-	PostCreateTag map[string]*Command `yaml:"postCreateTag" hcl:"post_create_tag json:"postCreateTag"`
-	PostUpdateTag map[string]*Command `yaml:"postUpdateTag" hcl:"post_update_tag json:"postUpdateTag"`
-	PostProcess   map[string]*Command `yaml:"postProcess" hcl:"post_process json:"postProcess"`
+	PreProcess    map[string]*Command `yaml:"preProcess" hcl:"pre_process" json:"preProcess"`
+	PostCreateTag map[string]*Command `yaml:"postCreateTag" hcl:"post_create_tag" json:"postCreateTag"`
+	PostUpdateTag map[string]*Command `yaml:"postUpdateTag" hcl:"post_update_tag" json:"postUpdateTag"`
+	PostProcess   map[string]*Command `yaml:"postProcess" hcl:"post_process" json:"postProcess"`
 }
 
 type Command struct {
