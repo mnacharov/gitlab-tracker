@@ -64,7 +64,7 @@ type Config struct {
 	Checks        ChecksConfig     `yaml:"checks" hcl:"checks" json:"checks"`
 	Hooks         HooksConfig      `yaml:"hooks" hcl:"hooks" json:"hooks"`
 	Rules         map[string]*Rule `yaml:"rules" hcl:"rules" json:"rules"`
-	Matrix        []string         `yaml:"matrix" hcl:"matrix" json:"matric"`
+	Matrix        []string         `yaml:"matrix" hcl:"matrix" json:"matrix"`
 	MatrixFromDir string           `yaml:"matrixFromDir" hcl:"matrix_from_dir" json:"matrixFromDir"`
 }
 
