@@ -33,8 +33,10 @@ const (
 
 	defaultTagSuffixSeparator = "@"
 
+	PreProcessCommandType    CommandType = "PreProcess"
 	PostCreateTagCommandType CommandType = "PostCreateTag"
 	PostUpdateTagCommandType CommandType = "PostUpdateTag"
+	PostProcessCommandType   CommandType = "PostProcess"
 	PreFlightCommandType     CommandType = "PreFlight"
 	PostFlightCommandType    CommandType = "PostFlight"
 )
@@ -76,8 +78,10 @@ type ChecksConfig struct {
 }
 
 type HooksConfig struct {
+	PreProcess    map[string]*Command `yaml:"preProcess" hcl:"pre_process"`
 	PostCreateTag map[string]*Command `yaml:"postCreateTag" hcl:"post_create_tag"`
 	PostUpdateTag map[string]*Command `yaml:"postUpdateTag" hcl:"post_update_tag"`
+	PostProcess   map[string]*Command `yaml:"postProcess" hcl:"post_process"`
 }
 
 type Command struct {
@@ -255,6 +259,18 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 	if len(suffix) > 0 {
 		rule.TagWithSuffix = rule.Tag + suffix
 	}
+	err = t.ExecCommandMap(PreProcessCommandType, t.config.Hooks.PreProcess, rule)
+	if err != nil {
+		return err
+	}
+	err = t.processRule(rule, force)
+	if err != nil {
+		return err
+	}
+	return t.ExecCommandMap(PostProcessCommandType, t.config.Hooks.PostProcess, rule)
+}
+
+func (t *Tracker) processRule(rule *Rule, force bool) error {
 	exists, tag, err := t.CreateTagIfNotExists(rule.TagWithSuffix)
 	if err != nil {
 		return err
