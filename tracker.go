@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -60,46 +61,46 @@ type Tracker struct {
 }
 
 type Config struct {
-	Checks        ChecksConfig     `yaml:"checks" hcl:"checks"`
-	Hooks         HooksConfig      `yaml:"hooks" hcl:"hooks"`
-	Rules         map[string]*Rule `yaml:"rules" hcl:"rules"`
-	Matrix        []string         `yaml:"matrix" hcl:"matrix"`
-	MatrixFromDir string           `yaml:"matrixFromDir" hcl:"matrix_from_dir"`
+	Checks        ChecksConfig     `yaml:"checks" hcl:"checks" json:"checks"`
+	Hooks         HooksConfig      `yaml:"hooks" hcl:"hooks" json:"hooks"`
+	Rules         map[string]*Rule `yaml:"rules" hcl:"rules" json:"rules"`
+	Matrix        []string         `yaml:"matrix" hcl:"matrix" json:"matric"`
+	MatrixFromDir string           `yaml:"matrixFromDir" hcl:"matrix_from_dir" json:"matrixFromDir"`
 }
 
 type ChecksConfig struct {
-	PreFlight  map[string]*Command `yaml:"preFlight" hcl:"pre_flight"`
-	PostFlight map[string]*Command `yaml:"postFlight" hcl:"post_flight"`
+	PreFlight  map[string]*Command `yaml:"preFlight" hcl:"pre_flight" json:"preFlight"`
+	PostFlight map[string]*Command `yaml:"postFlight" hcl:"post_flight" json:"postFlight"`
 }
 
 type HooksConfig struct {
-	PreProcess    map[string]*Command `yaml:"preProcess" hcl:"pre_process"`
-	PostCreateTag map[string]*Command `yaml:"postCreateTag" hcl:"post_create_tag"`
-	PostUpdateTag map[string]*Command `yaml:"postUpdateTag" hcl:"post_update_tag"`
-	PostProcess   map[string]*Command `yaml:"postProcess" hcl:"post_process"`
+	PreProcess    map[string]*Command `yaml:"preProcess" hcl:"pre_process json:"preProcess"`
+	PostCreateTag map[string]*Command `yaml:"postCreateTag" hcl:"post_create_tag json:"postCreateTag"`
+	PostUpdateTag map[string]*Command `yaml:"postUpdateTag" hcl:"post_update_tag json:"postUpdateTag"`
+	PostProcess   map[string]*Command `yaml:"postProcess" hcl:"post_process json:"postProcess"`
 }
 
 type Command struct {
-	RetryConfig         *RetryConfig `yaml:"retry" hcl:"retry"`
-	InitialDelaySeconds int          `yaml:"initialDelaySeconds" hcl:"initial_delay_seconds"`
-	AllowFailure        bool         `yaml:"allowFailure" hcl:"allow_failure"`
-	Command             []string     `yaml:"command" hcl:"command"`
+	RetryConfig         *RetryConfig `yaml:"retry" hcl:"retry" json:"retry"`
+	InitialDelaySeconds int          `yaml:"initialDelaySeconds" hcl:"initial_delay_seconds" json:"initialDelaySeconds"`
+	AllowFailure        bool         `yaml:"allowFailure" hcl:"allow_failure" json:"allowFailure"`
+	Command             []string     `yaml:"command" hcl:"command" json:"command"`
 }
 
 type Rule struct {
-	Path               string            `yaml:"path" hcl:"path"`
-	Tag                string            `yaml:"tag" hcl:"tag"`
-	TagWithSuffix      string            `yaml:"-" hcl:"-"`
-	TagSuffix          string            `yaml:"tagSuffix" hcl:"tag_suffix"`
-	TagSuffixSeparator string            `yaml:"tagSuffixSeparator" hcl:"tag_suffix_separator"`
-	TagSuffixFileRef   *TagSuffixFileRef `yaml:"tagSuffixFileRef" hcl:"tag_suffix_file_ref"`
+	Path               string            `yaml:"path" hcl:"path" json:"path"`
+	Tag                string            `yaml:"tag" hcl:"tag" json:"tag"`
+	TagWithSuffix      string            `yaml:"-" hcl:"-" json:"-`
+	TagSuffix          string            `yaml:"tagSuffix" hcl:"tag_suffix" json:"tagSuffix"`
+	TagSuffixSeparator string            `yaml:"tagSuffixSeparator" hcl:"tag_suffix_separator" json:"tagSuffixSeparator"`
+	TagSuffixFileRef   *TagSuffixFileRef `yaml:"tagSuffixFileRef" hcl:"tag_suffix_file_ref" json:"tagSuffixFileRef"`
 }
 
 type TagSuffixFileRef struct {
-	File      string         `yaml:"file" hcl:"file"`
-	RegExpRaw string         `yaml:"regexp" hcl:"regexp"`
-	Group     int            `yaml:"regexpGroup" hcl:"regexp_group"`
-	RegExp    *regexp.Regexp `yaml:"-" hcl:"-"`
+	File      string         `yaml:"file" hcl:"file" json:"file"`
+	RegExpRaw string         `yaml:"regexp" hcl:"regexp" json:"regexp"`
+	Group     int            `yaml:"regexpGroup" hcl:"regexp_group" json:"regexpGroup"`
+	RegExp    *regexp.Regexp `yaml:"-" hcl:"-" json:"-"`
 }
 
 func NewTracker() (*Tracker, error) {
@@ -531,6 +532,10 @@ func (t *Tracker) DiscoverConfigFile(dir string) (string, error) {
 	if _, err := os.Stat(filename); !os.IsNotExist(err) {
 		return filename, nil
 	}
+	filename = path.Join(dir, fmt.Sprintf("%s.json", configFilenameBase))
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		return filename, nil
+	}
 	return "", errors.New("configuration file not found")
 }
 
@@ -543,6 +548,11 @@ func (t *Tracker) LoadRules(filename string) error {
 
 	if strings.HasSuffix(filename, "hcl") {
 		err := hcl.Unmarshal(b, &t.config)
+		if err != nil {
+			return err
+		}
+	} else if strings.HasSuffix(filename, "json") {
+		err := json.Unmarshal(b, &t.config)
 		if err != nil {
 			return err
 		}
