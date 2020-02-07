@@ -500,7 +500,7 @@ func TestExecCheck_PreFlight(t *testing.T) {
 	}
 	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
 	if err == nil {
-		t.Errorf("Must be an error, but got nil")
+		t.Error("Must be an error, but got nil")
 	}
 	tracker.config.Checks = ChecksConfig{
 		PreFlight: map[string]*Command{
@@ -514,7 +514,7 @@ func TestExecCheck_PreFlight(t *testing.T) {
 	}
 	err = tracker.ExecCommandMap(PreFlightCommandType, tracker.config.Checks.PreFlight, nil)
 	if err == nil {
-		t.Errorf("Must be an error, but got nil")
+		t.Error("Must be an error, but got nil")
 	}
 }
 
@@ -556,10 +556,10 @@ func TestExecCheck_PostFlight(t *testing.T) {
 	st := time.Now()
 	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
 	if err == nil {
-		t.Errorf("Must be an error, but got nil")
+		t.Error("Must be an error, but got nil")
 	}
 	if time.Since(st) < 2*time.Second {
-		t.Errorf("InitialDelaySeconds=2 doesn't work as expected")
+		t.Error("InitialDelaySeconds=2 doesn't work as expected")
 	}
 	tracker.config.Checks = ChecksConfig{
 		PostFlight: map[string]*Command{
@@ -573,7 +573,22 @@ func TestExecCheck_PostFlight(t *testing.T) {
 	}
 	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
 	if err == nil {
-		t.Errorf("Must be an error, but got nil")
+		t.Error("Must be an error, but got nil")
+	}
+	tracker.config.Checks = ChecksConfig{
+		PostFlight: map[string]*Command{
+			"foobar": {
+				AllowFailure: true,
+				RetryConfig: &RetryConfig{
+					Maximum: 1,
+				},
+				Command: []string{"{{.FOOBAR}}"},
+			},
+		},
+	}
+	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
+	if err != nil {
+		t.Error(err)
 	}
 }
 
