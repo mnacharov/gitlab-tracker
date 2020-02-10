@@ -376,8 +376,15 @@ func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error
 	if err != nil && !strings.Contains(err.Error(), errTagNotFound) {
 		return false, nil, err
 	}
-	if err == nil {
-		return true, tag, nil
+	if tag != nil {
+		if tag.Commit.ID == t.ref {
+			return true, tag, nil
+		}
+		err = t.UpdateTag(tag, true, nil)
+		if err != nil {
+			return true, tag, err
+		}
+		return t.CreateTagIfNotExists(tagName)
 	}
 	logrus.Infof("Create '%s' tag.", tagName)
 	tag, err = t.CreateTagForRef(tagName, t.ref)

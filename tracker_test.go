@@ -595,8 +595,8 @@ func TestCreateTagIfNotExists(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if tag.Commit.ID == tracker.ref {
-		t.Errorf("Must be %q, but got %q", "000", tag.Commit.ID)
+	if tag.Commit.ID != tracker.ref {
+		t.Errorf("Must be %q, but got %q", tracker.ref, tag.Commit.ID)
 	}
 }
 
@@ -813,8 +813,8 @@ func TestTrackerPipeline2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetTag error: %v", err)
 	}
-	// TODO(l.aminov): After switching to existing tag we must check commit sha
-	// if tag.Commit.ID != commit {
-	// 	t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
-	// }
+	// After switching to existing tag we must check commit sha
+	if tag.Commit.ID != commit {
+		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
+	}
 }
