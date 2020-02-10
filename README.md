@@ -16,6 +16,16 @@ checks "pre_flight" "argocd_check" {
   ]
 }
 
+hooks "pre_process" "argocd_wait" {
+  command = [
+    "argocd",
+    "app",
+    "wait",
+    "{{.Tag}}-production",
+    "--timeout=300"
+  ]
+}
+
 hooks "post_create_tag" "argocd_set_new_revision" {
   command = [
     "argocd",
