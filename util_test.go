@@ -57,7 +57,11 @@ func TestProcessCommand(t *testing.T) {
 			t.Errorf("Must be %s, but got %s", test.args, cmd.Args)
 		}
 	}
-	_, err := ProcessCommand(rule, []string{"{{.TTTT"})
+	_, err := ProcessCommand(rule, []string{})
+	if err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	_, err = ProcessCommand(rule, []string{"{{.TTTT"})
 	if err == nil {
 		t.Error("Must be an error, but got nil")
 	}
