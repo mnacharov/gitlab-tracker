@@ -651,33 +651,53 @@ func (l *localExecutor) exec(args []string) ([]byte, error) {
 	return cmd.CombinedOutput()
 }
 
+func (l *localExecutor) commit() (string, error) {
+	commitBytes, err := l.exec([]string{"git", "log", "-1", "--format=format:%H"})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(commitBytes)), nil
+}
+
+func (l *localExecutor) addAndCommit() error {
+	commands := [][]string{
+		[]string{"git", "add", "."},
+		[]string{"git", "commit", "-am", "Commit"},
+	}
+	for _, command := range commands {
+		_, err := l.exec(command)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *localExecutor) initWorkspace() error {
+	body := `image: foobar:1.0.0`
+	if err := ioutil.WriteFile(path.Join(l.wd, "test_file"), []byte(body), os.ModePerm); err != nil {
+		return err
+	}
+	if _, err := l.exec([]string{"git", "init"}); err != nil {
+		return err
+	}
+	return l.addAndCommit()
+}
+
 func TestTrackerPipeline1(t *testing.T) {
-	repoDir, err := ioutil.TempDir("", "tracker-pipeline1")
+	repoDir, err := ioutil.TempDir("", "tracker-pipeline-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(repoDir)
-	body := `image: foobar:1.0.0`
-	if err := ioutil.WriteFile(path.Join(repoDir, "test_file"), []byte(body), os.ModePerm); err != nil {
+	le := &localExecutor{repoDir}
+	if err := le.initWorkspace(); err != nil {
 		t.Fatal(err)
 	}
-	le := &localExecutor{repoDir}
-	commands := [][]string{
-		[]string{"git", "init"},
-		[]string{"git", "add", "."},
-		[]string{"git", "commit", "-am", "Init commit"},
-	}
-	for _, command := range commands {
-		_, err := le.exec(command)
-		if err != nil {
-			t.Fatalf("Failed to execute %v command: %v", command, err)
-		}
-	}
-	commitBytes, err := le.exec([]string{"git", "log", "-1", "--format=format:%H"})
+	commit, err := le.commit()
 	if err != nil {
 		t.Fatal(err)
 	}
-	commit := strings.TrimSpace(string(commitBytes))
 	tracker := &Tracker{
 		gitLab: NewFakeClient(),
 		git:    "git",
@@ -697,10 +717,7 @@ func TestTrackerPipeline1(t *testing.T) {
 	}
 	tag, _, err := tracker.gitLab.GetTag("ABCD", "1.0.0", nil)
 	if err != nil {
-		t.Fatalf("Failed to get 1.0.0 tag: %v", err)
-	}
-	if tag.Name != "1.0.0" {
-		t.Errorf("Tag name must be 1.0.0, but got %s", tag.Name)
+		t.Fatalf("GetTag error: %v", err)
 	}
 	if tag.Commit.ID != commit {
 		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit)
@@ -708,5 +725,72 @@ func TestTrackerPipeline1(t *testing.T) {
 	// Diff returns an error
 	if err := tracker.Run(false); err == nil {
 		t.Fatal("Must be en error, but got nil")
+	}
+}
+
+func TestTrackerPipeline2(t *testing.T) {
+	repoDir, err := ioutil.TempDir("", "tracker-pipeline-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(repoDir)
+	le := &localExecutor{repoDir}
+	if err := le.initWorkspace(); err != nil {
+		t.Fatal(err)
+	}
+	commit, err := le.commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker := &Tracker{
+		gitLab: NewFakeClient(),
+		git:    "git",
+		proj:   "ABCD",
+		ref:    commit,
+		dir:    repoDir,
+		config: Config{
+			Rules: map[string]*Rule{
+				"foobar": &Rule{
+					Tag: "foobar",
+					TagSuffixFileRef: &TagSuffixFileRef{
+						File:   "test_file",
+						RegExp: regexp.MustCompile(`foobar:(.+)`),
+					},
+				},
+			},
+		},
+	}
+	if err := tracker.Run(false); err != nil {
+		t.Fatalf("tracker.Run error: %v", err)
+	}
+	tag, _, err := tracker.gitLab.GetTag("ABCD", "foobar@1.0.0", nil)
+	if err != nil {
+		t.Fatalf("GetTag error: %v", err)
+	}
+	if tag.Commit.ID != commit {
+		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
+	}
+	body := `image: foobar:2.0.0`
+	if err := ioutil.WriteFile(path.Join(le.wd, "test_file"), []byte(body), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := le.addAndCommit(); err != nil {
+		t.Fatal(err)
+	}
+	tracker.beforeRef = commit
+	commit, err = le.commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker.ref = commit
+	if err := tracker.Run(false); err != nil {
+		t.Fatalf("tracker.Run error: %v", err)
+	}
+	tag, _, err = tracker.gitLab.GetTag("ABCD", "foobar@2.0.0", nil)
+	if err != nil {
+		t.Fatalf("GetTag error: %v", err)
+	}
+	if tag.Commit.ID != commit {
+		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
 	}
 }
