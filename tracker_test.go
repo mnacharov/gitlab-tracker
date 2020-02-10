@@ -793,4 +793,28 @@ func TestTrackerPipeline2(t *testing.T) {
 	if tag.Commit.ID != commit {
 		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
 	}
+	body = `image: foobar:1.0.0`
+	if err := ioutil.WriteFile(path.Join(le.wd, "test_file"), []byte(body), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := le.addAndCommit(); err != nil {
+		t.Fatal(err)
+	}
+	tracker.beforeRef = commit
+	commit, err = le.commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker.ref = commit
+	if err := tracker.Run(false); err != nil {
+		t.Fatalf("tracker.Run error: %v", err)
+	}
+	tag, _, err = tracker.gitLab.GetTag("ABCD", "foobar@1.0.0", nil)
+	if err != nil {
+		t.Fatalf("GetTag error: %v", err)
+	}
+	// TODO(l.aminov): After switching to existing tag we must check commit sha
+	// if tag.Commit.ID != commit {
+	// 	t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
+	// }
 }
