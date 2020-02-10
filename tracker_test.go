@@ -1,9 +1,13 @@
 package main
 
 import (
+	"errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -626,5 +630,83 @@ func TestUpdateTag(t *testing.T) {
 	_, _, err = tracker.gitLab.GetTag("ABCD", "foobar")
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+type localExecutor struct {
+	wd string
+}
+
+func (l *localExecutor) exec(args []string) ([]byte, error) {
+	if len(args) == 0 {
+		return nil, errors.New("Empty args")
+	}
+	name := args[0]
+	arg := []string{}
+	if len(args) > 1 {
+		arg = args[1:]
+	}
+	cmd := exec.Command(name, arg...)
+	cmd.Dir = l.wd
+	return cmd.CombinedOutput()
+}
+
+func TestTrackerPipeline1(t *testing.T) {
+	repoDir, err := ioutil.TempDir("", "tracker-pipeline1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(repoDir)
+	body := `image: foobar:1.0.0`
+	if err := ioutil.WriteFile(path.Join(repoDir, "test_file"), []byte(body), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	le := &localExecutor{repoDir}
+	commands := [][]string{
+		[]string{"git", "init"},
+		[]string{"git", "add", "."},
+		[]string{"git", "commit", "-am", "Init commit"},
+	}
+	for _, command := range commands {
+		_, err := le.exec(command)
+		if err != nil {
+			t.Fatalf("Failed to execute %v command: %v", command, err)
+		}
+	}
+	commitBytes, err := le.exec([]string{"git", "log", "-1", "--format=format:%H"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit := strings.TrimSpace(string(commitBytes))
+	tracker := &Tracker{
+		gitLab: NewFakeClient(),
+		git:    "git",
+		proj:   "ABCD",
+		ref:    commit,
+		config: Config{
+			Rules: map[string]*Rule{
+				"foobar": &Rule{
+					Path: repoDir,
+					Tag:  "1.0.0",
+				},
+			},
+		},
+	}
+	if err := tracker.Run(false); err != nil {
+		t.Fatalf("tracker.Run error: %v", err)
+	}
+	tag, _, err := tracker.gitLab.GetTag("ABCD", "1.0.0", nil)
+	if err != nil {
+		t.Fatalf("Failed to get 1.0.0 tag: %v", err)
+	}
+	if tag.Name != "1.0.0" {
+		t.Errorf("Tag name must be 1.0.0, but got %s", tag.Name)
+	}
+	if tag.Commit.ID != commit {
+		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit)
+	}
+	// Diff returns an error
+	if err := tracker.Run(false); err == nil {
+		t.Fatal("Must be en error, but got nil")
 	}
 }
