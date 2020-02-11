@@ -749,6 +749,18 @@ func TestTrackerPipeline2(t *testing.T) {
 		ref:    commit,
 		dir:    repoDir,
 		config: Config{
+			Checks: ChecksConfig{
+				PreFlight: map[string]*Command{
+					"pre": &Command{
+						RetryConfig: &RetryConfig{
+							Maximum: 1,
+						},
+						Command: []string{
+							"whoami11",
+						},
+					},
+				},
+			},
 			Rules: map[string]*Rule{
 				"foobar": &Rule{
 					Tag: "foobar",
@@ -760,6 +772,10 @@ func TestTrackerPipeline2(t *testing.T) {
 			},
 		},
 	}
+	if err := tracker.Run(false); err == nil {
+		t.Error("Must be an error, but got nil")
+	}
+	tracker.config.Checks.PreFlight["pre"].Command = []string{"whoami"}
 	if err := tracker.Run(false); err != nil {
 		t.Fatalf("tracker.Run error: %v", err)
 	}
