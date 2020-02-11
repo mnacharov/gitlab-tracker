@@ -530,17 +530,12 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 }
 
 func (t *Tracker) DiscoverConfigFile(dir string) (string, error) {
-	filename := path.Join(dir, fmt.Sprintf("%s.yml", configFilenameBase))
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		return filename, nil
-	}
-	filename = path.Join(dir, fmt.Sprintf("%s.hcl", configFilenameBase))
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		return filename, nil
-	}
-	filename = path.Join(dir, fmt.Sprintf("%s.json", configFilenameBase))
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		return filename, nil
+	exts := []string{"yml", "yaml", "hcl", "json"}
+	for _, ext := range exts {
+		filename := path.Join(dir, fmt.Sprintf("%s.%s", configFilenameBase, ext))
+		if _, err := os.Stat(filename); !os.IsNotExist(err) {
+			return filename, nil
+		}
 	}
 	return "", errors.New("configuration file not found")
 }
