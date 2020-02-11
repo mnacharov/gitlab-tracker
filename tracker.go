@@ -215,7 +215,6 @@ func (t *Tracker) GetTagSuffixForRule(r *Rule) (string, error) {
 			suffix = tagSuffixReplacer.Replace(suffix)
 			return separator + suffix, nil
 		}
-		return "", nil
 	}
 	return "", nil
 }
