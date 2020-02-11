@@ -90,7 +90,7 @@ type Command struct {
 type Rule struct {
 	Path               string            `yaml:"path" hcl:"path" json:"path"`
 	Tag                string            `yaml:"tag" hcl:"tag" json:"tag"`
-	TagWithSuffix      string            `yaml:"-" hcl:"-" json:"-`
+	TagWithSuffix      string            `yaml:"-" hcl:"-" json:"-"`
 	TagSuffix          string            `yaml:"tagSuffix" hcl:"tag_suffix" json:"tagSuffix"`
 	TagSuffixSeparator string            `yaml:"tagSuffixSeparator" hcl:"tag_suffix_separator" json:"tagSuffixSeparator"`
 	TagSuffixFileRef   *TagSuffixFileRef `yaml:"tagSuffixFileRef" hcl:"tag_suffix_file_ref" json:"tagSuffixFileRef"`

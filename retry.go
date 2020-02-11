@@ -93,10 +93,8 @@ func Retry(callback func(*Stats) error, config *RetryConfig) error {
 		}
 		stats.Attempt = stats.Attempt + 1
 		time.Sleep(stats.Interval)
-		if !stats.Config.Forever {
-			if stats.Attempt > stats.Config.Maximum {
-				break
-			}
+		if !stats.Config.Forever && stats.Attempt > stats.Config.Maximum {
+			break
 		}
 	}
 
