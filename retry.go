@@ -47,9 +47,8 @@ func Retry(callback func(*Stats) error, config *RetryConfig) error {
 	var err error
 	if config == nil {
 		config = &RetryConfig{
-			Forever:  true,
-			Interval: 1 * time.Second,
-			Jitter:   false,
+			Maximum:  5,
+			Interval: time.Second,
 		}
 	}
 
