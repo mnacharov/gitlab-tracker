@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -577,16 +578,18 @@ func TestDiscoverConfigFile(t *testing.T) {
 }
 
 func TestCreateTagIfNotExists(t *testing.T) {
+	refAtStart := "000"
+	refAtChange := "111"
 	tracker := &Tracker{
 		gitLab: NewFakeClient(),
 		proj:   "ABCD",
-		ref:    "000",
+		ref:    refAtStart,
 	}
 	_, _, err := tracker.CreateTagIfNotExists("foobar")
 	if err != nil {
 		t.Error(err)
 	}
-	tracker.ref = "111"
+	tracker.ref = refAtChange
 	_, _, err = tracker.CreateTagIfNotExists("foobar")
 	if err != nil {
 		t.Error(err)
@@ -595,8 +598,8 @@ func TestCreateTagIfNotExists(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if tag.Commit.ID != tracker.ref {
-		t.Errorf("Must be %q, but got %q", tracker.ref, tag.Commit.ID)
+	if tag.Commit.ID != refAtStart {
+		t.Errorf("Must be %q, but got %q", refAtStart, tag.Commit.ID)
 	}
 }
 
@@ -742,6 +745,7 @@ func TestTrackerPipeline2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	commitAtStart := commit
 	tracker := &Tracker{
 		gitLab: NewFakeClient(),
 		git:    "git",
@@ -830,7 +834,113 @@ func TestTrackerPipeline2(t *testing.T) {
 		t.Fatalf("GetTag error: %v", err)
 	}
 	// After switching to existing tag we must check commit sha
-	if tag.Commit.ID != commit {
-		t.Errorf("Tag commit must be %s, but got %s", commit, tag.Commit.ID)
+	if tag.Commit.ID != commitAtStart {
+		t.Errorf("Tag commit must be %s, but got %s", commitAtStart, tag.Commit.ID)
+	}
+}
+
+func TestTrackerPipeline3(t *testing.T) {
+	repoDir, err := ioutil.TempDir("", "tracker-pipeline-3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(repoDir)
+	le := &localExecutor{repoDir}
+	if _, err := le.exec([]string{"git", "init"}); err != nil {
+		t.Fatal(err)
+	}
+	apps := []string{"app1", "app2", "app3", "app4"}
+	rules := make(map[string]*Rule)
+	for _, app := range apps {
+		err := os.Mkdir(path.Join(repoDir, app), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = ioutil.WriteFile(path.Join(repoDir, app, "application"), []byte(fmt.Sprintf("%s:1.0.0", app)), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rules[app] = &Rule{
+			Path: path.Join(app, "**"),
+			Tag:  app,
+			TagSuffixFileRef: &TagSuffixFileRef{
+				File:   path.Join(app, "application"),
+				RegExp: regexp.MustCompile(`[\-\w]+[:@](.*)$`),
+			},
+		}
+	}
+	if err := le.addAndCommit(); err != nil {
+		t.Fatal(err)
+	}
+	commit, err := le.commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker := &Tracker{
+		gitLab: NewFakeClient(),
+		git:    "git",
+		proj:   "ABCD",
+		ref:    commit,
+		dir:    repoDir,
+		config: Config{
+			Rules: rules,
+		},
+	}
+	if err := tracker.Run(false); err != nil {
+		t.Fatal(err)
+	}
+	for _, app := range apps {
+		tagName := fmt.Sprintf("%s@1.0.0", app)
+		tag, _, err := tracker.gitLab.GetTag("ABCD", tagName, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tag.Commit.ID != tracker.ref {
+			t.Errorf("Tag %s commit must be %s, but got %s", tagName, tracker.ref, tag.Commit.ID)
+		}
+	}
+	err = ioutil.WriteFile(path.Join(repoDir, "app1", "test_file"), []byte(`test_file`), os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(path.Join(repoDir, "app2", "application"), []byte(`app2:2.0.0`), os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := le.addAndCommit(); err != nil {
+		t.Fatal(err)
+	}
+	tracker.beforeRef = commit
+	commit, err = le.commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker.ref = commit
+	if err := tracker.Run(false); err != nil {
+		t.Fatal(err)
+	}
+	tag, _, err := tracker.gitLab.GetTag("ABCD", "app1@1.0.0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag.Commit.ID != tracker.ref {
+		t.Errorf("Tag %s commit must be %s, but got %s", tag.Name, tracker.ref, tag.Commit.ID)
+	}
+	tag, _, err = tracker.gitLab.GetTag("ABCD", "app2@2.0.0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag.Commit.ID != tracker.ref {
+		t.Errorf("Tag %s commit must be %s, but got %s", tag.Name, tracker.ref, tag.Commit.ID)
+	}
+	for _, app := range apps[1:] {
+		tagName := fmt.Sprintf("%s@1.0.0", app)
+		tag, _, err := tracker.gitLab.GetTag("ABCD", tagName, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tag.Commit.ID == tracker.ref {
+			t.Errorf("Tag %s commit must be %s, but got %s", tagName, tracker.ref, tag.Commit.ID)
+		}
 	}
 }

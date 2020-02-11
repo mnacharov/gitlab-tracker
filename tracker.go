@@ -265,6 +265,10 @@ func (t *Tracker) ProcessRule(rule *Rule, force bool) error {
 }
 
 func (t *Tracker) processRule(rule *Rule, force bool) error {
+	var (
+		matches []string
+		match   bool
+	)
 	exists, tag, err := t.CreateTagIfNotExists(rule.TagWithSuffix)
 	if err != nil {
 		return err
@@ -277,16 +281,26 @@ func (t *Tracker) processRule(rule *Rule, force bool) error {
 		// Try to use CI_COMMIT_BEFORE_SHA
 		destRef = t.beforeRef
 	}
-	changes, err := t.Diff(t.ref, destRef)
+	changesHead, err := t.Diff(t.ref, destRef)
 	if err != nil {
 		return err
 	}
-	matches, match := rule.IsChangesMatch(changes)
+	if t.ref != tag.Commit.ID {
+		changesTag, err := t.Diff(t.ref, tag.Commit.ID)
+		if err == nil {
+			matches, match = rule.IsChangesMatch(changesTag)
+		}
+	}
+	matchesHead, matchHead := rule.IsChangesMatch(changesHead)
+	if matchHead {
+		match = true
+		matches = matchesHead
+	}
 	if !match {
 		logrus.Debug("Nothing changed.")
 		return nil
 	}
-	err = t.UpdateTag(tag, force, matches)
+	err = t.UpdateTag(tag, true, matches)
 	if err != nil {
 		return err
 	}
@@ -376,14 +390,7 @@ func (t *Tracker) CreateTagIfNotExists(tagName string) (bool, *gitlab.Tag, error
 		return false, nil, err
 	}
 	if tag != nil {
-		if tag.Commit.ID == t.ref {
-			return true, tag, nil
-		}
-		err = t.UpdateTag(tag, true, nil)
-		if err != nil {
-			return true, tag, err
-		}
-		return t.CreateTagIfNotExists(tagName)
+		return true, tag, nil
 	}
 	logrus.Infof("Create '%s' tag.", tagName)
 	tag, err = t.CreateTagForRef(tagName, t.ref)
