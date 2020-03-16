@@ -837,6 +837,10 @@ func TestTrackerPipeline3(t *testing.T) {
 	if tag.Commit.ID != tracker.ref {
 		t.Errorf("Tag %s commit must be %s, but got %s", tag.Name, tracker.ref, tag.Commit.ID)
 	}
+	tagApp2, _, err := tracker.gitLab.GetTag("ABCD", "app2@1.0.0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	tag, _, err = tracker.gitLab.GetTag("ABCD", "app2@2.0.0", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -853,5 +857,31 @@ func TestTrackerPipeline3(t *testing.T) {
 		if tag.Commit.ID == tracker.ref {
 			t.Errorf("Tag %s commit must be %s, but got %s", tagName, tracker.ref, tag.Commit.ID)
 		}
+	}
+	err = ioutil.WriteFile(path.Join(repoDir, "app2", "application"), []byte(`app2:1.0.0`), os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := le.addAndCommit(); err != nil {
+		t.Fatal(err)
+	}
+	tracker.beforeRef = commit
+	commit, err = le.commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tracker.ref = commit
+	if err := tracker.Run(false); err != nil {
+		t.Fatal(err)
+	}
+	tag, _, err = tracker.gitLab.GetTag("ABCD", "app2@1.0.0", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag.Commit.ID != tracker.ref {
+		t.Errorf("Tag %s commit must be %s, but got %s", tag.Name, tracker.ref, tag.Commit.ID)
+	}
+	if tagApp2.Commit.ID == tag.Commit.ID {
+		t.Errorf("Tag %s commit must be %s not the same as before update", tag.Name, tag.Commit.ID)
 	}
 }
