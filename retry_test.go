@@ -77,7 +77,7 @@ func TestRetry(t *testing.T) {
 		if s.Attempt > 0 {
 			s.Break()
 		}
-		return errors.New("Error")
+		return errors.New("error")
 	}, &RetryConfig{
 		Interval: 100 * time.Microsecond,
 		Forever:  true,

@@ -15,10 +15,10 @@ type localExecutor struct {
 
 func (l *localExecutor) exec(args []string) ([]byte, error) {
 	if len(args) == 0 {
-		return nil, errors.New("Empty args")
+		return nil, errors.New("empty args")
 	}
 	name := args[0]
-	arg := []string{}
+	var arg []string
 	if len(args) > 1 {
 		arg = args[1:]
 	}
@@ -37,8 +37,8 @@ func (l *localExecutor) commit() (string, error) {
 
 func (l *localExecutor) addAndCommit() error {
 	commands := [][]string{
-		[]string{"git", "add", "."},
-		[]string{"git", "commit", "-am", "Commit"},
+		{"git", "add", "."},
+		{"git", "commit", "-am", "Commit"},
 	}
 	for _, command := range commands {
 		_, err := l.exec(command)
