@@ -619,7 +619,7 @@ func TestTrackerPipeline1(t *testing.T) {
 		ref:    commit,
 		config: Config{
 			Rules: map[string]*Rule{
-				"foobar": &Rule{
+				"foobar": {
 					Path: repoDir,
 					Tag:  "1.0.0",
 				},
@@ -666,7 +666,7 @@ func TestTrackerPipeline2(t *testing.T) {
 		config: Config{
 			Checks: ChecksConfig{
 				PreFlight: map[string]*Command{
-					"pre": &Command{
+					"pre": {
 						RetryConfig: &RetryConfig{
 							Maximum: 1,
 						},
@@ -677,7 +677,7 @@ func TestTrackerPipeline2(t *testing.T) {
 				},
 			},
 			Rules: map[string]*Rule{
-				"foobar": &Rule{
+				"foobar": {
 					Tag: "foobar",
 					TagSuffixFileRef: &TagSuffixFileRef{
 						File:   "test_file",
