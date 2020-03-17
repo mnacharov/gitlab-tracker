@@ -12,10 +12,16 @@ var (
 	forceFlag    = flag.Bool("force", true, "Force recreate tags.")
 	logLevelFlag = flag.String("log-level", "INFO", "Level of logging.")
 	validateFlag = flag.Bool("validate", false, "Validate config and exit")
+	versionFlag  = flag.Bool("version", false, "Prints version and exit")
 )
 
 func main() {
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(GetVersion())
+		return
+	}
 
 	if err := ConfigureLogging(*logLevelFlag); err != nil {
 		logrus.Fatal(err)
