@@ -1,5 +1,16 @@
 package main
 
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path"
+)
+
+const (
+	configFilenameBase = ".gitlab-tracker"
+)
+
 type Config struct {
 	Checks        ChecksConfig     `yaml:"checks" hcl:"checks" json:"checks"`
 	Hooks         HooksConfig      `yaml:"hooks" hcl:"hooks" json:"hooks"`
@@ -25,4 +36,15 @@ type Command struct {
 	InitialDelaySeconds int          `yaml:"initialDelaySeconds" hcl:"initial_delay_seconds" json:"initialDelaySeconds"`
 	AllowFailure        bool         `yaml:"allowFailure" hcl:"allow_failure" json:"allowFailure"`
 	Command             []string     `yaml:"command" hcl:"command" json:"command"`
+}
+
+func DiscoverConfigFile(dir string) (string, error) {
+	exts := []string{"yml", "yaml", "hcl", "json"}
+	for _, ext := range exts {
+		filename := path.Join(dir, fmt.Sprintf("%s.%s", configFilenameBase, ext))
+		if _, err := os.Stat(filename); !os.IsNotExist(err) {
+			return filename, nil
+		}
+	}
+	return "", errors.New("configuration file not found")
 }

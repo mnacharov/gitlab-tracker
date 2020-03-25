@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -27,7 +28,12 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	tracker, err := NewTracker()
+	workDir, err := os.Getwd()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	tracker, err := NewTracker(workDir)
 	if err != nil {
 		logrus.Fatal(err)
 	}

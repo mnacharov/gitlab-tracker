@@ -309,8 +309,12 @@ func TestLoadEnvironment(t *testing.T) {
 }
 
 func TestNewTracker(t *testing.T) {
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	fillEnvVars()
-	_, err := NewTracker()
+	_, err = NewTracker(dir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -514,26 +518,6 @@ func TestExecCheck_PostFlight(t *testing.T) {
 		},
 	}
 	err = tracker.ExecCommandMap(PostFlightCommandType, tracker.config.Checks.PostFlight, nil)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func TestDiscoverConfigFile(t *testing.T) {
-	tracker := Tracker{}
-	_, err := tracker.DiscoverConfigFile("test_data/discover_rules")
-	if err == nil {
-		t.Error("Must be an error, but got nil")
-	}
-	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/yml")
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/hcl")
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = tracker.DiscoverConfigFile("test_data/discover_rules/json")
 	if err != nil {
 		t.Error(err)
 	}

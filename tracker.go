@@ -26,7 +26,6 @@ type CommandType string
 const (
 	tagMessage          = "Auto-generated. Do not Remove."
 	errTagNotFound      = "Tag Not Found"
-	configFilenameBase  = ".gitlab-tracker"
 	descriptionTemplate = "<details><summary>Details</summary><pre><code>%s</code></pre></details>"
 
 	defaultTagSuffixSeparator = "@"
@@ -59,20 +58,16 @@ type Tracker struct {
 	config      Config
 }
 
-func NewTracker() (*Tracker, error) {
+func NewTracker(workDir string) (*Tracker, error) {
 	g, err := exec.LookPath("git")
-	if err != nil {
-		return nil, err
-	}
-	d, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 	t := &Tracker{
 		git: g,
-		dir: d,
+		dir: workDir,
 	}
-	filename, err := t.DiscoverConfigFile(d)
+	filename, err := DiscoverConfigFile(t.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -395,17 +390,6 @@ func (t *Tracker) TemplateRulesWithMatrix() error {
 		return t.templateRulesWithMatrixRaw(matrixRule)
 	}
 	return t.templateRulesWithMatrixFromDir(matrixRule)
-}
-
-func (t *Tracker) DiscoverConfigFile(dir string) (string, error) {
-	exts := []string{"yml", "yaml", "hcl", "json"}
-	for _, ext := range exts {
-		filename := path.Join(dir, fmt.Sprintf("%s.%s", configFilenameBase, ext))
-		if _, err := os.Stat(filename); !os.IsNotExist(err) {
-			return filename, nil
-		}
-	}
-	return "", errors.New("configuration file not found")
 }
 
 func (t *Tracker) LoadRules(filename string) error {
