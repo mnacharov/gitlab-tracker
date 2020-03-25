@@ -1,11 +1,6 @@
-FROM golang:1.13-alpine as builder
-WORKDIR /go/src/github.com/leominov/gitlab-tracker
-COPY . .
-RUN go build ./
-
-FROM alpine:3.9
+FROM alpine:3.11
 ENV USER=argocd
-COPY --from=builder /go/src/github.com/leominov/gitlab-tracker/gitlab-tracker /usr/local/bin/gitlab-tracker
+COPY /_output/gitlab-tracker_linux_amd64/gitlab-tracker /usr/local/bin/gitlab-tracker
 RUN apk --no-cache add \
         curl \
         git \
