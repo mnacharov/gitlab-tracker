@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/hcl"
 	"github.com/sirupsen/logrus"
-	gitlab "github.com/xanzy/go-gitlab"
+	"github.com/xanzy/go-gitlab"
 	"gopkg.in/yaml.v2"
 )
 
