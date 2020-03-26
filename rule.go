@@ -52,20 +52,27 @@ func (r *Rule) Clone() *Rule {
 
 func (r *Rule) parseTmpl(data map[string]string) error {
 	var err error
-	r.Path, err = gotmpl(r.Path, data)
+	p, err := gotmpl(r.Path, data)
 	if err != nil {
 		return err
 	}
-	r.Tag, err = gotmpl(r.Tag, data)
+	r.Path = p
+	t, err := gotmpl(r.Tag, data)
 	if err != nil {
 		return err
 	}
-	r.TagSuffix, err = gotmpl(r.TagSuffix, data)
+	r.Tag = t
+	ts, err := gotmpl(r.TagSuffix, data)
 	if err != nil {
 		return err
 	}
-	r.TagSuffixSeparator, err = gotmpl(r.TagSuffixSeparator, data)
-	return err
+	r.TagSuffix = ts
+	tss, err := gotmpl(r.TagSuffixSeparator, data)
+	if err != nil {
+		return err
+	}
+	r.TagSuffixSeparator = tss
+	return nil
 }
 
 func (r *Rule) IsChangesMatch(changes []string) ([]string, bool) {
