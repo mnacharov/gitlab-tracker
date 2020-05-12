@@ -242,6 +242,7 @@ func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*C
 			if err != nil {
 				return fmt.Errorf("%v: %s", err, string(b))
 			}
+			logrus.Debugf("Command %v output: %s", command.Command, string(b))
 			return nil
 		}, command.RetryConfig)
 		if !command.AllowFailure && err != nil {
