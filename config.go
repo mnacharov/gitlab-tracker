@@ -11,6 +11,15 @@ const (
 	configFilenameBase = ".gitlab-tracker"
 )
 
+var (
+	supportedConfigExtensions = []string{
+		"yml",
+		"yaml",
+		"hcl",
+		"json",
+	}
+)
+
 type Config struct {
 	Checks        ChecksConfig     `yaml:"checks" hcl:"checks" json:"checks"`
 	Hooks         HooksConfig      `yaml:"hooks" hcl:"hooks" json:"hooks"`
@@ -35,12 +44,12 @@ type Command struct {
 	RetryConfig         *RetryConfig `yaml:"retry" hcl:"retry" json:"retry"`
 	InitialDelaySeconds int          `yaml:"initialDelaySeconds" hcl:"initial_delay_seconds" json:"initialDelaySeconds"`
 	AllowFailure        bool         `yaml:"allowFailure" hcl:"allow_failure" json:"allowFailure"`
+	SkipOnFailure       bool         `yaml:"skipOnFailure" hcl:"skip_on_failure" json:"skipOnFailure"`
 	Command             []string     `yaml:"command" hcl:"command" json:"command"`
 }
 
 func DiscoverConfigFile(dir string) (string, error) {
-	exts := []string{"yml", "yaml", "hcl", "json"}
-	for _, ext := range exts {
+	for _, ext := range supportedConfigExtensions {
 		filename := path.Join(dir, fmt.Sprintf("%s.%s", configFilenameBase, ext))
 		if _, err := os.Stat(filename); !os.IsNotExist(err) {
 			return filename, nil

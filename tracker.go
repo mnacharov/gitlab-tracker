@@ -30,11 +30,11 @@ const (
 
 	defaultTagSuffixSeparator = "@"
 
+	PreFlightCommandType     CommandType = "PreFlight"
 	PreProcessCommandType    CommandType = "PreProcess"
 	PostCreateTagCommandType CommandType = "PostCreateTag"
 	PostUpdateTagCommandType CommandType = "PostUpdateTag"
 	PostProcessCommandType   CommandType = "PostProcess"
-	PreFlightCommandType     CommandType = "PreFlight"
 	PostFlightCommandType    CommandType = "PostFlight"
 )
 
@@ -213,10 +213,18 @@ func (t *Tracker) UpdateTags(force bool) error {
 	var failed bool
 	for _, rule := range t.config.Rules {
 		err := t.ProcessRule(rule, force)
-		if err != nil {
-			failed = true
-			logrus.Error(err)
+		if err == nil {
+			continue
 		}
+		// Одна из команда может вернуть ошибку, которую пользователь
+		// попросил игнорировать через SkipOnFailure, в таком случае
+		// не фиксируем неудачу, продолжив обработку остальные правила
+		if IsIgnorableErrFailedCommandExecution(err) {
+			logrus.Debug(err)
+			continue
+		}
+		failed = true
+		logrus.Error(err)
 	}
 	if failed {
 		return errors.New("failed")
@@ -246,7 +254,12 @@ func (t *Tracker) ExecCommandMap(commandType CommandType, commands map[string]*C
 			return nil
 		}, command.RetryConfig)
 		if !command.AllowFailure && err != nil {
-			return fmt.Errorf("%s %s: %v", commandType, name, err)
+			return ErrFailedCommandExecution{
+				Ignore:      command.SkipOnFailure,
+				CommandType: commandType,
+				Name:        name,
+				Message:     err.Error(),
+			}
 		}
 	}
 	return nil
