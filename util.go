@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"text/template"
 
 	"github.com/sirupsen/logrus"
@@ -43,6 +44,22 @@ func ProcessCommand(rule *Rule, args []string) (*exec.Cmd, error) {
 	c := exec.Command(argsExec[0])
 	c.Env = os.Environ()
 	return c, nil
+}
+
+func GetStringEnv(name string, def string) string {
+	if val, ok := os.LookupEnv(name); ok {
+		return val
+	}
+	return def
+}
+
+func GetBoolEnv(name string, def bool) bool {
+	if val, ok := os.LookupEnv(name); ok {
+		if b, err := strconv.ParseBool(val); err == nil {
+			return b
+		}
+	}
+	return def
 }
 
 func gotmpl(templ string, data interface{}) (string, error) {

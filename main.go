@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	forceFlag    = flag.Bool("force", true, "Force recreate tags.")
-	logLevelFlag = flag.String("log-level", "INFO", "Level of logging.")
-	validateFlag = flag.Bool("validate", false, "Validate config and exit")
-	versionFlag  = flag.Bool("version", false, "Prints version and exit")
+	forceFlag    = flag.Bool("force", GetBoolEnv("GT_FORCE", false), "Force recreate tags.")
+	logLevelFlag = flag.String("log-level", GetStringEnv("GT_LOG_LEVEL", "INFO"), "Level of logging.")
+	validateFlag = flag.Bool("validate", false, "Validate config and exit.")
+	versionFlag  = flag.Bool("version", false, "Prints version and exit.")
 )
 
 func main() {
