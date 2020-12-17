@@ -6,7 +6,7 @@ RUN apk --no-cache add \
         git \
         jq \
     && curl -sfL \
-        https://github.com/argoproj/argo-cd/releases/download/v1.7.8/argocd-linux-amd64 \
+        https://github.com/argoproj/argo-cd/releases/download/v1.8.1/argocd-linux-amd64 \
         -o /usr/local/bin/argocd \
     && chmod +x /usr/local/bin/argocd \
     && apk del curl
